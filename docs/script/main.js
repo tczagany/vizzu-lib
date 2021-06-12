@@ -11,13 +11,6 @@ function formatSnippet(snippet)
 		.replace(/^    /mg,' ');
 }
 
-function isInView(child, parent) {
-    const childRect = child.getBoundingClientRect();
-    const parentRect = parent.getBoundingClientRect();
-    return childRect.top >= parentRect.top
-		&& childRect.bottom <= parentRect.bottom;
-}
-
 function sectionById(id) {
 	return documentation.find(section => section.id == id);
 }
@@ -85,7 +78,7 @@ class Main
 
 		this.content.innerHTML += `
 		<h2 id="${section.id + '-title'}">${section.title}</h2>
-		<div class="snippet">
+		<div class="snippet" id="${section.id + '-snippet'}">
 			<pre><code class="JavaScript">${snippet}</code></pre>
 		</div>
 		<div>${section.description}</div>
@@ -95,8 +88,7 @@ class Main
 
 	scrolled(event)
 	{
-		console.log(event);
-		const topSection = this.firstVisibleSection();
+		const topSection = this.firstVisibleSnippet();
 		if (topSection != this.lastSection) {
 			this.nextSection = topSection;
 			setTimeout(() => this.activate(), 500);
@@ -133,16 +125,27 @@ class Main
 		this.lastSection = section;
 	}
 
-	firstVisibleSection()
+	firstVisibleSnippet()
 	{
-		const ends = this.content.getElementsByClassName('section-end');
-		for (const end of ends)
-			if (isInView(end, this.contentView))
+		const snippets = this.content.getElementsByClassName('snippet');
+		let prevId = '';
+		for (const snippet of snippets)
+		{
+			if (this.isBelowExampleView(snippet, this.contentView))
 			{
-				const id = end.id.replace(/-end/, '');
-				return sectionById(id);
+				console.log(snippet.getBoundingClientRect().top,
+					this.contentView.getBoundingClientRect().top);
+				return sectionById(prevId);
 			}
-		return null;
+			prevId = snippet.id.replace(/-snippet/, '');
+		}
+		return sectionById(prevId);
+	}
+
+	isBelowExampleView(snippet) {
+		const snippetRect = snippet.getBoundingClientRect();
+		const viewRect = this.contentView.getBoundingClientRect();
+		return snippetRect.top > viewRect.top + 25;
 	}
 }
 

@@ -30,18 +30,20 @@ body {
 }
 
 #content {
-	padding: 0px 15px 400px 15px;
+	padding: 0px 15px 500px 15px;
 	width: 650px;
 }
 
 #content-view {
 	outline: none !important;
+	scroll-snap-type: block;
 }
 
 .snippet {
+	scroll-snap-align: start;
 	width: 480px;
 }
 
 .section-end {
-	margin-bottom: 55px;
+	margin-bottom: 35px;
 }
