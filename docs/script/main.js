@@ -1,4 +1,6 @@
-import Vizzu from '../../example/lib/vizzu.js';
+//import Vizzu from 'https://storage.googleapis.com/vizzu-lib-main/lib/vizzu.js';
+//import Vizzu from 'https://vizzuhq.github.io/vizzu-beta-release/0.1.0/vizzu.js'
+import Vizzu from '../../example/lib/vizzu.js'
 import data from './sample-data.js';
 import style from './example-style.js';
 import documentation from './documentation.js';
@@ -66,6 +68,7 @@ class Main
 		let tocItem = document.createElement('li');
 		tocItem.innerHTML = section.title.toUpperCase();
 		tocItem.id = section.id + '-menuitem';
+		tocItem.classList.add('toc-item');
 		tocItem.onclick = () => {
 			this.scrollTo(section);
 		};
@@ -113,7 +116,6 @@ class Main
 			this.anim = this.anim.then(this.lastSection.leave);
 			let menuItem = document.getElementById(this.lastSection.id + '-menuitem')
 			menuItem.classList.remove('toc-item-selected');
-			menuItem.classList.add('toc-item');
 			this.lastSection = null;
 		}
 

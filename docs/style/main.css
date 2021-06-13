@@ -20,6 +20,10 @@ body {
 	list-style-type: none;
 }
 
+.toc-item:hover {
+	cursor: pointer;
+}
+
 .toc-item-selected {
 	color: #fff;
 }
@@ -36,7 +40,7 @@ body {
 
 #content-view {
 	outline: none !important;
-	scroll-snap-type: block;
+	scroll-snap-type: y proximity;
 }
 
 .snippet {
