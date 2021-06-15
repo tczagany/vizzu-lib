@@ -1,112 +1,36 @@
 import Vizzu from './lib/vizzu.js';
-
-function onLoaded()
-{
-	let data = {
-			series: [
-				{
-					name: 'Colors',
-					type: 'categories',
-					values: ['red', 'green', 'blue']
-				},
-				{
-					name: 'Val',
-					type: 'values',
-					values: [ 3, 5, 4 ]
-				}
-			]
-		};
-
-	chart.animate(
-	{
-		data: data,
-		descriptor : {
-			channels: {
-				x: { attach: [ 'Colors'] },
-			},
-			title: null,
-			legend: null,
-		}
-	}).then(() =>
-		chart.animate({
-			descriptor : {
-				channels: {
-					x: { detach: [ 'Colors'] },
-					y: { attach: [ 'Colors' ]}
-				},
-			}
-		})
-	).then(() =>
-		chart.animate({
-			descriptor : {
-				channels: {
-					color: { attach: [ 'Colors' ]}
-				}
-			}
-		})
-	).then(() =>
-		chart.animate({
-			descriptor : {
-				channels: {
-					color: { detach: [ 'Colors' ]},
-					lightness: { attach: [ 'Colors' ]}
-				}
-			}
-		})
-	).then(() =>
-		chart.animate({
-			descriptor : {
-				channels: {
-					lightness: { detach: [ 'Colors' ]},
-					label: { attach: [ 'Colors' ]}
-				}
-			}
-		})
-	)
-	.catch((err) =>
-	{
-		console.log(err);
-	});
-}
-
-function onLoaded2()
-{
-	let data = {
-			series: [
-				{
-					name: 'Colors',
-					type: 'categories',
-					values: ['red', 'green', 'blue']
-				},
-				{
-					name: 'Val',
-					type: 'values',
-					values: [ 3, 5, 4 ]
-				}
-			]
-		};
-
-	chart2.animate(
-	{
-		data: data,
-		descriptor : {
-			channels: {
-				x: { attach: [ 'Colors'] },
-				lightness: { attach: [ 'Val' ]}
-			},
-			title: null,
-			legend: null,
-		}
-	})
-}
+import data from './data.js';
 
 let slider = document.getElementById("myRange");
-let chart = new Vizzu('vizzuCanvas', onLoaded);
-let chart2 = new Vizzu('vizzuCanvas', onLoaded2);
+
+const chart = new Vizzu(document.getElementById("vizzuCanvas"));
 
 slider.oninput = (e)=>
 {
 	let t = e.target.value;
-	chart.animation.pause();
-	chart.animation.seek(t/10 + '%');
+	let anim = chart.animation;
+	anim.pause();
+	anim.seek(t/10 + '%');
 };
+
+chart.initializing.then(chart =>
+	chart.animate({
+		data,
+		descriptor: {
+			channels: {
+				x: { attach: ['cat0', 'cat2', 'cat3', 'cat4', 'cat5','cat6'] },
+				y: { attach: ['val1', 'cat1']},
+			}/*,
+			filter: [
+				{ 'cat1' : 'C'},
+				{ 'cat1' : 'F'},
+				'push'
+			]*/
+		}
+	})
+).then( chart =>
+	chart.animate({ descriptor: {
+		orientation: 'horizontal'
+	}
+	})
+).catch(console.log);

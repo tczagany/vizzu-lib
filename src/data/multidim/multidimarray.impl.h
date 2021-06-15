@@ -15,10 +15,25 @@ namespace MultiDim
 
 template <typename T>
 Array<T>::Array(const MultiIndex &sizes, const T &def)
-	: sizes(sizes)
+	: sizes(sizes), def(def)
+{}
+
+template <typename T>
+T &Array<T>::operator[](const MultiIndex &index)
 {
-	values.resize(unfoldedSize());
-	for(auto &value : values) value = def;
+	auto i = unfoldedIndex(index);
+	auto it = values.find(i);
+	if (it == values.end())
+		it = values.insert({ i, def }).first;
+	return it->second;
+}
+
+template <typename T>
+const T &Array<T>::at(const MultiIndex &index) const
+{
+	auto it = values.find(unfoldedIndex(index));
+	if (it == values.end()) return def;
+	else return it->second;
 }
 
 template <typename T>
@@ -27,6 +42,21 @@ size_t Array<T>::unfoldedSize() const
 	size_t unfoldedSize = 1u;
 	for(auto size: sizes) unfoldedSize *= size;
 	return unfoldedSize;
+}
+
+template <typename T>
+MultiIndex Array<T>::foldedIndex(size_t unfoldedIndex) const
+{
+	MultiIndex index;
+	index.resize(sizes.size());
+	for (auto i = sizes.size(); i > 0; i--)
+	{
+		auto size = sizes[i-1];
+		auto idx = unfoldedIndex % size;
+		index[i - 1] = Index{idx};
+		unfoldedIndex /= size;
+	}
+	return index;
 }
 
 template <typename T>
@@ -79,15 +109,6 @@ void Array<T>::visitSubSlice(
 }
 
 template <typename T>
-void Array<T>::visitSubSlicesTill(const SubSliceIndex &targetSubSliceIndex,
-								 const std::function<void(const SubSliceIndex&)> &visitor) const
-{
-	SubSliceIndex subSliceIndex;
-	subSliceIndex.reserve(targetSubSliceIndex.size());
-	this->visitSubSlicesTill(targetSubSliceIndex, visitor, subSliceIndex, false);
-}
-
-template <typename T>
 void Array<T>::visitSubSlice(
 	const SubSliceIndex &subSliceIndex,
 	const std::function<void(const T&)> &visitor,
@@ -113,54 +134,6 @@ void Array<T>::visitSubSlice(
 }
 
 template <typename T>
-void Array<T>::visitSubSlicesTill(const SubSliceIndex &targetSubSliceIndex,
-								 const std::function<void(const SubSliceIndex&)> &visitor,
-								 SubSliceIndex &subSliceIndex,
-								 bool whole) const
-{
-	if (subSliceIndex.size() == targetSubSliceIndex.size())
-	{
-		visitor(subSliceIndex);
-	}
-	else
-	{
-		auto level = subSliceIndex.size();
-		auto dimIndex = targetSubSliceIndex[level].dimIndex;
-		subSliceIndex.push_back({ dimIndex, Index(0) });
-
-		auto maxIndex = whole ? sizes[dimIndex] - 1
-							  : targetSubSliceIndex[level].index;
-
-		for (auto i = 0u; i <= maxIndex; i++)
-		{
-			subSliceIndex[level].index = Index(i);
-			visitSubSlicesTill(targetSubSliceIndex, visitor, subSliceIndex,
-							   i != targetSubSliceIndex[level].index);
-		}
-		subSliceIndex.pop_back();
-	}
-}
-
-template <typename T>
-MultiIndex Array<T>::subSliceIndexMaxAt(const SubSliceIndex &subSliceIndex,
-										const MultiIndex &multiIndex) const
-{
-	MultiIndex res = multiIndex;
-	for (auto &sliceIndex : subSliceIndex)
-		res[sliceIndex.dimIndex] = Index{sizes[sliceIndex.dimIndex] - 1};
-	return res;
-}
-
-template <typename T>
-size_t Array<T>::lastIndexCountAt(const SubSliceIndex &subSliceIndex) const
-{
-	auto count = 0;
-	for (auto &sliceIndex : subSliceIndex)
-		if (sliceIndex.index == sizes[sliceIndex.dimIndex] - 1) count++;
-	return count;
-}
-
-template <typename T>
 MultiIndex Array<T>::maxIndex() const
 {
 	MultiIndex res = sizes;
@@ -175,21 +148,6 @@ bool Array<T>::empty() const
 }
 
 template <typename T>
-void Array<T>::incIndex(MultiIndex &index) const
-{
-	int dim = (int)index.size() - 1;
-	bool overflow = true;
-	while (overflow && dim >= 0)
-	{
-		index[dim]++;
-		if (index[dim] >= sizes[dim])
-			index[dim] = Index(0);
-		else overflow = false;
-		dim--;
-	}
-}
-
-template <typename T>
 Iterator<T>::Iterator(const Array<T> &parent, bool end)
 	: parent(parent)
 {
@@ -201,7 +159,7 @@ template <typename T>
 Iterator<T> &Iterator<T>::operator++()
 {
 	ref++;
-	parent.incIndex(index);
+	index = parent.foldedIndex(ref->first);
 	return *this;
 }
 

@@ -53,7 +53,8 @@ DataCube::DataCube(const DataTable &table,
 						? row[series[idx].getColIndex()] : 0.0;
 
 				if (filter.match(row))
-					data.at(index).subCells[idx].add(value, (int)row[ColumnIndex(0u)]);
+					data[index].subCells[idx]
+						.add(value, (int)row[ColumnIndex(0u)]);
 			}
 		}
 	}
@@ -207,22 +208,6 @@ Aggregator DataCube::aggregateAt(const MultiIndex &multiIndex,
 	});
 
 	return aggregate;
-}
-
-double DataCube::sumTillAt(const SeriesList &colIndices,
-						   const SeriesList &sumCols,
-						   const MultiIndex &multiIndex,
-						   SeriesIndex seriesId) const
-{
-	double sum = 0;
-
-	data.visitSubSlicesTill(subSliceIndex(colIndices, multiIndex),
-	[&](const SubSliceIndex &subSliceIndex) {
-		auto index = subSliceIndex.getProjectionOf(multiIndex);
-		sum += (double)aggregateAt(index, sumCols, seriesId);
-	});
-
-	return sum;
 }
 
 Aggregator DataCube::valueAt(const MultiIndex &multiIndex, const SeriesIndex &seriesId) const

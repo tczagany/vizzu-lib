@@ -90,14 +90,7 @@ void Diagram::generateMarkers(const Data::DataCube &dataCube,
 
 void Diagram::linkMarkers(const Buckets &buckets, bool main)
 {
-	size_t maxBucketSize = 0;
-	for (const auto &pair : buckets)
-		if (pair.second.size() > maxBucketSize)
-			maxBucketSize = pair.second.size();
-
-	std::vector<std::pair<uint64_t, double>> sorted;
-	sorted.resize(maxBucketSize);
-	for (auto &pair: sorted) pair.second = 0;
+	std::unordered_map<uint64_t, double> sizes;
 
 	for (const auto &pair : buckets)
 	{
@@ -108,10 +101,16 @@ void Diagram::linkMarkers(const Buckets &buckets, bool main)
 			auto &marker = markers[id.second];
 			auto horizontal = (bool)options->horizontal.get();
 			auto size = marker.size.getCoord(!horizontal);
-			sorted[id.first].first = id.first;
-			sorted[id.first].second += size;
+			auto it = sizes.find(id.first);
+			if (it == sizes.end()) it = sizes.insert({id.first, 0}).first;
+			it->second += size;
 		}
 	}
+
+	std::vector<std::pair<uint64_t, double>> sorted;
+	sorted.reserve(sizes.size());
+	for (auto it = sizes.begin(); it != sizes.end(); ++it)
+		sorted.emplace_back(it->first, it->second);
 
 	if (main && options->sorted.get())
 	{
@@ -122,7 +121,7 @@ void Diagram::linkMarkers(const Buckets &buckets, bool main)
 	}
 	if (main && options->reverse.get())
 	{
-			std::reverse(sorted.begin(), sorted.end());
+		std::reverse(sorted.begin(), sorted.end());
 	}
 
 	for (const auto &pair : buckets)
@@ -132,11 +131,15 @@ void Diagram::linkMarkers(const Buckets &buckets, bool main)
 		for (auto i = 0u; i < sorted.size(); i++)
 		{
 			auto idAct = sorted[i].first;
-			auto indexAct = bucket.at(idAct);
+			auto it = bucket.find(idAct);
+			if (it == bucket.end()) continue;
+			auto indexAct = it->second;
 			auto &act = markers[indexAct];
 			auto iNext = (i+1) % sorted.size();
 			auto idNext = sorted[iNext].first;
-			auto indexNext = bucket.at(idNext);
+			auto itNext = bucket.find(idNext);
+			if (itNext == bucket.end()) continue;
+			auto indexNext = itNext->second;
 			act.setNextMarker(iNext, &markers[indexNext],
 					(bool)options->horizontal.get() == main, main);
 		}

@@ -49,11 +49,6 @@ public:
 				 const SeriesList &sumCols,
 				 SeriesIndex seriesId) const;
 
-	double sumTillAt(const SeriesList &colIndices,
-						 const SeriesList &sumCols,
-					 const MultiDim::MultiIndex &multiIndex,
-					 SeriesIndex seriesId) const;
-
 	Aggregator valueAt(const MultiDim::MultiIndex &multiIndex,
 				   const SeriesIndex &seriesId) const;
 
