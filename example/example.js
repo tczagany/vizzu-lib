@@ -1,14 +1,17 @@
 import Vizzu from './lib/vizzu.js';
 
+
+async function digestMessage(message) {
+	const msgUint8 = new TextEncoder().encode(message);
+  	const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+ 	const hashArray = Array.from(new Uint8Array(hashBuffer));
+ 	const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+ 	return hashHex;
+}
+
+
 function onLoaded()
 {
-	chart.addEventListener("vizzu.testEvents.xyParam", (param) => {
-		chart.removeEventListener("vizzu.testEvents.xyParam");
-		console.log("evnet: x = " + param.x + " y = " + param.y);
-		param.x = 42;
-		param.y = 24;
-	});
-
 	let data = {
 			series: [
 				{
@@ -36,9 +39,6 @@ function onLoaded()
 		}
 	}).then(() =>
 		chart.animate({
-			data: {
-				filter: record => record.Colors != 'blue'
-			},
 			descriptor : {
 				channels: {
 					x: { detach: [ 'Colors'] },
@@ -56,9 +56,6 @@ function onLoaded()
 		})
 	).then(() =>
 		chart.animate({
-			data: {
-				filter: null
-			},
 			descriptor : {
 				channels: {
 					color: { detach: [ 'Colors' ]},
@@ -75,19 +72,27 @@ function onLoaded()
 				}
 			}
 		})
-	)
-	.catch((err) =>
+	).then(async () => {
+		var cavasElement = document.getElementById("canvas");
+
+		//var canvasElementContext = cavasElement.getContext("2d");
+		//var ImageData = canvasElementContext.getImageData(60, 60, 200, 100);
+		//canvasElementContext.putImageData(ImageData, 150, 10);
+		//console.log(ImageData);
+
+		var dataURL = cavasElement.toDataURL();
+		const digestBuffer = await digestMessage(dataURL);
+		var ref = '83013e50a4a1b650440fe7cdde5a0d107e0948ffe99d57c735e035328b488e37'
+		if (ref == digestBuffer) {
+			console.log('equal');
+		} else {
+			console.log('diff');
+		}
+		
+		}).catch((err) =>
 	{
 		console.log(err);
 	});
 }
 
-let slider = document.getElementById("myRange");
-let chart = new Vizzu('vizzuCanvas', onLoaded);
-
-slider.oninput = (e)=>
-{
-	let t = e.target.value;
-	chart.animation.pause();
-	chart.animation.seek(t/10 + '%');
-};
+let chart = new Vizzu('canvas', onLoaded);
