@@ -1,9 +1,14 @@
+var selenium = require('selenium-webdriver');
+var chrome = require('selenium-webdriver/chrome');
+var chromedriver = require('chromedriver');
+
+
+
 async function getTitle(port){
-       let {Builder} = require('selenium-webdriver');
-       let chrome = require('selenium-webdriver/chrome');
-       require('chromedriver');
+       
+       
       
-       let driver = new Builder()
+       let driver = new selenium.Builder()
            .forBrowser('chrome')
            .setChromeOptions(new chrome.Options().headless())
            .build();

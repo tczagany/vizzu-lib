@@ -37,7 +37,7 @@ function onLoaded()
 			title: null,
 			legend: null,
 		}
-	}).then(() =>
+	}).then(chart =>
 		chart.animate({
 			descriptor : {
 				channels: {
@@ -46,7 +46,7 @@ function onLoaded()
 				},
 			}
 		})
-	).then(() =>
+	).then(chart =>
 		chart.animate({
 			descriptor : {
 				channels: {
@@ -54,7 +54,7 @@ function onLoaded()
 				}
 			}
 		})
-	).then(() =>
+	).then(chart =>
 		chart.animate({
 			descriptor : {
 				channels: {
@@ -63,7 +63,7 @@ function onLoaded()
 				}
 			}
 		})
-	).then(() =>
+	).then(chart =>
 		chart.animate({
 			descriptor : {
 				channels: {
@@ -95,4 +95,8 @@ function onLoaded()
 	});
 }
 
+const queryString = window.location.search;
+const urlParams = new URLSearchParams(queryString);
+const testCase = urlParams.get('testCase')
+console.log(testCase);
 let chart = new Vizzu('canvas', onLoaded);
