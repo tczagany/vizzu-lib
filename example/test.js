@@ -1,4 +1,4 @@
-import Vizzu from './lib/vizzu.js';
+import Vizzu from 'https://vizzu-lib-main.storage.googleapis.com/lib/vizzu.js';
 
 
 async function digestMessage(message) {
@@ -10,93 +10,29 @@ async function digestMessage(message) {
 }
 
 
-function onLoaded()
-{
-	let data = {
-			series: [
-				{
-					name: 'Colors',
-					type: 'categories',
-					values: ['red', 'green', 'blue']
-				},
-				{
-					name: 'Val',
-					type: 'values',
-					values: [ 3, 5, 4 ]
-				}
-			]
-		};
-
-	chart.animate(
-	{
-		data: data,
-		descriptor : {
-			channels: {
-				x: { attach: [ 'Colors'] },
-			},
-			title: null,
-			legend: null,
-		}
-	}).then(chart =>
-		chart.animate({
-			descriptor : {
-				channels: {
-					x: { detach: [ 'Colors'] },
-					y: { attach: [ 'Colors' ]}
-				},
-			}
-		})
-	).then(chart =>
-		chart.animate({
-			descriptor : {
-				channels: {
-					color: { attach: [ 'Colors' ]}
-				}
-			}
-		})
-	).then(chart =>
-		chart.animate({
-			descriptor : {
-				channels: {
-					color: { detach: [ 'Colors' ]},
-					lightness: { attach: [ 'Colors' ]}
-				}
-			}
-		})
-	).then(chart =>
-		chart.animate({
-			descriptor : {
-				channels: {
-					lightness: { detach: [ 'Colors' ]},
-					label: { attach: [ 'Colors' ]}
-				}
-			}
-		})
-	).then(async () => {
-		var cavasElement = document.getElementById("canvas");
-
-		//var canvasElementContext = cavasElement.getContext("2d");
-		//var ImageData = canvasElementContext.getImageData(60, 60, 200, 100);
-		//canvasElementContext.putImageData(ImageData, 150, 10);
-		//console.log(ImageData);
-
-		var dataURL = cavasElement.toDataURL();
-		const digestBuffer = await digestMessage(dataURL);
-		var ref = '83013e50a4a1b650440fe7cdde5a0d107e0948ffe99d57c735e035328b488e37'
-		if (ref == digestBuffer) {
-			console.log('equal');
-		} else {
-			console.log('diff');
-		}
-		
-		}).catch((err) =>
-	{
-		console.log(err);
-	});
-}
-
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
 const testCase = urlParams.get('testCase')
-console.log(testCase);
-let chart = new Vizzu('canvas', onLoaded);
+import("./testCases/" + testCase).then((module) => {
+    let chart = new Vizzu('vizzuCanvas');
+    let promise = chart.initializing
+    for (let i = 0; i < module.default.testSteps.length; i++) {
+        promise = promise.then(module.default.testSteps[i].task)
+        promise.then(async () => {
+            var cavasElement = document.getElementById("vizzuCanvas");
+
+            //var canvasElementContext = cavasElement.getContext("2d");
+            //var ImageData = canvasElementContext.getImageData(60, 60, 200, 100);
+            //canvasElementContext.putImageData(ImageData, 150, 10);
+            //console.log(ImageData);
+
+            var dataURL = cavasElement.toDataURL();
+            const digestBuffer = await digestMessage(dataURL);
+            if (module.default.testSteps[i].ref == digestBuffer) {
+                console.log(testCase + ':' + i + ':' + 'PASSED');
+            } else {
+                console.error(testCase + ':' + i + ':' + 'FAILED' + ':' + digestBuffer);
+            }
+        })
+    }
+})
