@@ -1,4 +1,4 @@
-var path = require('path');
+let path = require('path');
 
 
 class Workspace {
@@ -23,13 +23,13 @@ class Workspace {
 
     openWorkspace(port = this.#findFreePort()) {
         this.#workspacePort = port
-        var http = require('http');
-        var finalhandler = require('finalhandler');
-        var serveStatic = require('serve-static');
+        let http = require('http');
+        let finalhandler = require('finalhandler');
+        let serveStatic = require('serve-static');
     
-        var serve = serveStatic(this.#workspacePath);
+        let serve = serveStatic(this.#workspacePath);
         this.#workspace = http.createServer(function(req, res) {
-            var done = finalhandler(req, res);
+            let done = finalhandler(req, res);
             serve(req, res, done);
         });
         this.#workspace.listen(port);
@@ -41,14 +41,14 @@ class Workspace {
 
 
     #findFreePort() {
-        var http = require('http');
+        let http = require('http');
     
-        var server = http.createServer(function(req, res) {
-            var done = finalhandler(req, res);
+        let server = http.createServer(function(req, res) {
+            let done = finalhandler(req, res);
             serve(req, res, done);
         });
         server.listen(0, function() {});
-        var port = server.address().port
+        let port = server.address().port
         server.close()
         return port;
     }

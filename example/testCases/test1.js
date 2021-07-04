@@ -71,7 +71,7 @@ const testSteps = [
                 }
             }
         }),
-        ref: '2cd9496665e7f04d88c65dd23552faed7d0a2bcb3eacf7d1a67f85f1462694c4'},
+        ref: '2cd9496665e7f04d88c65dd23552faed7d0a2bcb3eacf7d1a67f85f1462694c3'},
 ]
 
 

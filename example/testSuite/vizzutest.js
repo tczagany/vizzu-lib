@@ -1,8 +1,9 @@
-var fs = require('fs');
-var path = require('path');
+let fs = require('fs');
+let path = require('path');
+let webdriver = require('selenium-webdriver');
 
-var Workspace = require('./workspace.js')
-var Chrome = require('./browser/chrome.js')
+let Workspace = require('./workspace.js')
+let Chrome = require('./browser/chrome.js')
 
 
 class TestSuite {
@@ -48,8 +49,23 @@ class TestSuite {
     }
 
     async #runTestCase(index) {
-        console.log('Running Test Case ' + index + ' : ' + this.#testCases[index]);
+        //console.log('Running Test Case ' + index + ' : ' + this.#testCases[index]);
         await this.#browser.getUrl('http://127.0.0.1:' + String(this.#workspace.getWorkspacePort()) + '/index.html' + '?testCase=' + this.#testCases[index])
+        let testResultId = 'vizzuTestResult'
+        const element = await this.#browser.getDriver().findElement(webdriver.By.id(testResultId));
+        let testResult;
+        // todo: timeout break
+        while (true) {
+            testResult = await this.#browser.getDriver().executeScript('return ' + testResultId, element);
+            if (testResult == 'PASSED' || testResult == 'FAILED') {
+                break;
+            }
+        }
+        if (testResult == 'PASSED') {
+            console.log(this.#testCases[index] + ' : ' + testResult)
+        } else {
+            console.error(this.#testCases[index] + ' : ' + testResult)
+        }
     }
 
     #startTestSuite() {

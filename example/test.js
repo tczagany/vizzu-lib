@@ -1,4 +1,5 @@
-import Vizzu from 'https://vizzu-lib-main.storage.googleapis.com/lib/vizzu.js';
+//import Vizzu from 'https://vizzu-lib-main.storage.googleapis.com/lib/vizzu.js';
+import Vizzu from './lib/vizzu.js';
 
 
 async function digestMessage(message) {
@@ -13,26 +14,31 @@ async function digestMessage(message) {
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
 const testCase = urlParams.get('testCase')
-import("./testCases/" + testCase).then((module) => {
+let status = 'PASSED';
+import('./testCases/' + testCase).then((module) => {
     let chart = new Vizzu('vizzuCanvas');
     let promise = chart.initializing
     for (let i = 0; i < module.default.testSteps.length; i++) {
-        promise = promise.then(module.default.testSteps[i].task)
-        promise.then(async () => {
-            var cavasElement = document.getElementById("vizzuCanvas");
+        promise = promise.then(module.default.testSteps[i].task).then(async (promise) => {
+            let cavasElement = document.getElementById('vizzuCanvas');
 
-            //var canvasElementContext = cavasElement.getContext("2d");
-            //var ImageData = canvasElementContext.getImageData(60, 60, 200, 100);
+            //let canvasElementContext = cavasElement.getContext('2d');
+            //let ImageData = canvasElementContext.getImageData(60, 60, 200, 100);
             //canvasElementContext.putImageData(ImageData, 150, 10);
             //console.log(ImageData);
 
-            var dataURL = cavasElement.toDataURL();
+            let dataURL = cavasElement.toDataURL();
             const digestBuffer = await digestMessage(dataURL);
             if (module.default.testSteps[i].ref == digestBuffer) {
                 console.log(testCase + ':' + i + ':' + 'PASSED');
             } else {
+                status = 'FAILED';
                 console.error(testCase + ':' + i + ':' + 'FAILED' + ':' + digestBuffer);
             }
+            return promise;
         })
     }
+    promise.then(async () => {
+        vizzuTestResult = status;
+    })
 })

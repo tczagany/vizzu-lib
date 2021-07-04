@@ -1,11 +1,11 @@
-var selenium = require('selenium-webdriver');
-var chrome = require('selenium-webdriver/chrome');
-var chromedriver = require('chromedriver');
+let webdriver = require('selenium-webdriver');
+let chrome = require('selenium-webdriver/chrome');
+let chromedriver = require('chromedriver');
 
 
 class Chrome {
 
-    #browser;
+    #driver;
     
 
     constructor() {}
@@ -14,7 +14,7 @@ class Chrome {
     openBrowser(headless=true) {
         /*const { Preferences, Type, Level } = require('selenium-webdriver/lib/logging')
         const { By, Key, Capabilities, until } = require('selenium-webdriver');
-        const caps = selenium.Capabilities.chrome();
+        const caps = webdriver.Capabilities.chrome();
         const logPrefs = new Preferences();
         logPrefs.setLevel(Type.BROWSER, Level.ALL);
         caps.setLoggingPrefs(logPrefs);
@@ -25,26 +25,30 @@ class Chrome {
         if (headless) {
             options.headless();
         }
-        this.#browser = new selenium.Builder()
+        this.#driver = new webdriver.Builder()
                 .forBrowser('chrome')
                 .setChromeOptions(options)
+                .withCapabilities(webdriver.Capabilities.chrome())
                 .build();
 
-        /*this.#browser.manage().logs()
+        /*this.#driver.manage().logs()
             .get(Type.BROWSER)
             .then(v => v && v.length && console.log(v));*/
     }
 
     closeBrowser() {
-        this.#browser.quit();
+        this.#driver.quit();
+    }
+
+    getDriver() {
+        return this.#driver;
     }
 
     async getUrl(url) {
-        await this.#browser.get(url);        
-        await this.#browser.wait(selenium.until.elementLocated(selenium.By.id('vizzuCanvas')), 1000);
-        await this.#browser.wait(selenium.until.elementTextIs(this.#browser.findElement(selenium.By.id('vizzuCanvas')), 'PASSED'), 10000);
+        await this.#driver.get(url);
     }
 }
+
 
 
 module.exports = Chrome;
