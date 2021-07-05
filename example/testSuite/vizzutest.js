@@ -37,7 +37,7 @@ class TestSuite {
     async runTestSuite() {
         this.#startTestSuite();
         for (let i = 0; i < this.#testCases.length; i++) {
-            await this.#runTestCase(i)
+            await this.#runTestCase(i);
         }
         this.#finishTestSuite();
     }
@@ -51,20 +51,17 @@ class TestSuite {
     async #runTestCase(index) {
         //console.log('Running Test Case ' + index + ' : ' + this.#testCases[index]);
         await this.#browser.getUrl('http://127.0.0.1:' + String(this.#workspace.getWorkspacePort()) + '/index.html' + '?testCase=' + this.#testCases[index])
-        let testResultId = 'vizzuTestResult'
-        const element = await this.#browser.getDriver().findElement(webdriver.By.id(testResultId));
-        let testResult;
         // todo: timeout break
         while (true) {
-            testResult = await this.#browser.getDriver().executeScript('return ' + testResultId, element);
+            let testResult= await this.#browser.getDriver().executeScript('if (window.hasOwnProperty("result")) { return result } else { return \'PENDING\' }');
             if (testResult == 'PASSED' || testResult == 'FAILED') {
+                if (testResult == 'PASSED') {
+                    console.log(this.#testCases[index] + ' : ' + testResult);
+                } else {
+                    console.error(this.#testCases[index] + ' : ' + testResult);
+                }
                 break;
             }
-        }
-        if (testResult == 'PASSED') {
-            console.log(this.#testCases[index] + ' : ' + testResult)
-        } else {
-            console.error(this.#testCases[index] + ' : ' + testResult)
         }
     }
 

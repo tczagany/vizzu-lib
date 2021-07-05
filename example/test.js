@@ -13,11 +13,11 @@ async function digestMessage(message) {
 
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
-const testCase = urlParams.get('testCase')
+const testCase = urlParams.get('testCase');
 let status = 'PASSED';
 import('./testCases/' + testCase).then((module) => {
     let chart = new Vizzu('vizzuCanvas');
-    let promise = chart.initializing
+    let promise = chart.initializing;
     for (let i = 0; i < module.default.testSteps.length; i++) {
         promise = promise.then(module.default.testSteps[i].task).then(async (promise) => {
             let cavasElement = document.getElementById('vizzuCanvas');
@@ -39,6 +39,6 @@ import('./testCases/' + testCase).then((module) => {
         })
     }
     promise.then(async () => {
-        vizzuTestResult = status;
+        window.result = status;
     })
 })

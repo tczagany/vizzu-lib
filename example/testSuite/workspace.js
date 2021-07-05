@@ -17,12 +17,12 @@ class Workspace {
 
 
     getWorkspacePort() {
-        return this.#workspacePort
+        return this.#workspacePort;
     }
 
 
     openWorkspace(port = this.#findFreePort()) {
-        this.#workspacePort = port
+        this.#workspacePort = port;
         let http = require('http');
         let finalhandler = require('finalhandler');
         let serveStatic = require('serve-static');
@@ -48,8 +48,8 @@ class Workspace {
             serve(req, res, done);
         });
         server.listen(0, function() {});
-        let port = server.address().port
-        server.close()
+        let port = server.address().port;
+        server.close();
         return port;
     }
 }
