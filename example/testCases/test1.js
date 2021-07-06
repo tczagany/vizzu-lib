@@ -26,7 +26,13 @@ const testSteps = [
                 legend: null,
             }
         }),
-        ref: 'c79f4aebf290438567ad121bd92059678475fef0fcc3e257a944219a029449cf'},
+        ref: {
+            '20%': '',
+            '40%': '',
+            '60%': '',
+            '80%': '',
+            '100%': '',
+        }},
     { task: chart => chart.animate(
         {
             data: {
@@ -39,7 +45,13 @@ const testSteps = [
                 },
             }
         }),
-        ref: '57cbea907308db40ca5797f918ac467e0b2e518d30177a9999f99521570f83f0'},
+        ref: {
+            '20%': '',
+            '40%': '',
+            '60%': '',
+            '80%': '',
+            '100%': '',
+        }},
     { task: chart => chart.animate(
         {
             descriptor : {
@@ -48,7 +60,13 @@ const testSteps = [
                 }
             }
         }),
-        ref: '26d4062ff2037d1c8dd101a163afd4a35d5e6a945ec03a9c8faeb7b691c30fed'},
+        ref: {
+            '20%': '',
+            '40%': '',
+            '60%': '',
+            '80%': '',
+            '100%': '',
+        }},
     { task: chart => chart.animate(
         {
             data: {
@@ -61,7 +79,13 @@ const testSteps = [
                 }
             }
         }),
-        ref: '8f02437e355e3edb7dd0d0712526f53718707d448f214a0d08ec29598494c1a6'},
+        ref: {
+            '20%': '',
+            '40%': '',
+            '60%': '',
+            '80%': '',
+            '100%': '',
+        }},
     { task: chart => chart.animate(
         {
             descriptor : {
@@ -71,7 +95,13 @@ const testSteps = [
                 }
             }
         }),
-        ref: '2cd9496665e7f04d88c65dd23552faed7d0a2bcb3eacf7d1a67f85f1462694c3'},
+        ref: {
+            '20%': '',
+            '40%': '',
+            '60%': '',
+            '80%': '',
+            '100%': '',
+        }},
 ]
 
 
