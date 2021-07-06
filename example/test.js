@@ -26,19 +26,23 @@ import('./testCases/' + testCase).then((module) => {
             promise = promise.then((chart) => {
                 let prom = module.default.testSteps[i].task(chart)
                 let anim = chart.animation;
+                let seekPromise = Promise.resolve();
                 for (let j = 20; j <= 100; j+=20) {
-                    anim.pause();
-                    anim.seek(j + '%');
-                    let cavasElement = document.getElementById('vizzuCanvas');
-                    let dataURL = cavasElement.toDataURL();
-                    digestMessage(dataURL).then(digestBuffer => {
-                        if (module.default.testSteps[i].ref == digestBuffer) {
-                            console.log(testCase + ':' + i + ':' + j + ':' + 'PASSED');
-                        } else {
-                            status = 'FAILED';
-                            console.error(testCase + ':' + i + ':' + j + ':' + 'FAILED' + ':' + digestBuffer);
-                        }
-                    })
+                    seekPromise = seekPromise.then(() => {
+                        anim.pause();
+                        anim.seek(j + '%');
+                    }).then(() => new Promise(resolve => setTimeout(resolve, 100))).then(() => {
+                        let cavasElement = document.getElementById('vizzuCanvas');
+                        let dataURL = cavasElement.toDataURL();
+                        return dataURL;
+                    }).then(dataURL => digestMessage(dataURL)).then(digestBuffer => {
+                            if (module.default.testSteps[i].ref == digestBuffer) {
+                                console.log(testCase + ':' + i + ':' + j + ':' + 'PASSED');
+                            } else {
+                                status = 'FAILED';
+                                console.error(testCase + ':' + i + ':' + j + ':' + 'FAILED' + ':' + digestBuffer);
+                            }
+                        })
                 }
                 anim.play();
                 return prom 
