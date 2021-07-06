@@ -29,29 +29,35 @@ import('./testCases/' + testCase).then((module) => {
                 let prom = module.default.testSteps[i].task(chart)
                 let anim = chart.animation;
                 anim.pause();
-                for (let j = 20; j <= 100; j+=20) {
-                    anim.seek(j + '%');
+                let seeks = Object.keys(module.default.testSteps[i]['ref'])
+                seeks.sort(function(a, b) {
+                    return parseInt(a.replace('%', '')) - parseInt(b.replace('%', ''));
+                });
+                seeks.forEach(key => {
+                    let seek = key.replace('%', '') + '%'
+                    let hash = module.default.testSteps[i]['ref'][key]
+                    anim.seek(seek);
                     chart.render.updateFrame(true);
                     let cavasElement = document.getElementById('vizzuCanvas');
                     let dataURL = cavasElement.toDataURL();
                     let digest = digestMessage(dataURL);
                     promises.push(digest);
                     digest.then(digestBuffer => {
-                        if (module.default.testSteps[i].ref == digestBuffer) {
-                            console.log(testCase + ':' + i + ':' + j + ':' + 'PASSED');
+                        if (hash == digestBuffer) {
+                            console.log(testCase + ' : ' + i + ' : ' + seek + ' : ' + 'PASSED');
                         } else {
                             status = 'FAILED';
-                            console.error(testCase + ':' + i + ':' + j + ':' + 'FAILED' + ':' + digestBuffer);
+                            console.error(testCase + ' : ' + i + ' : ' + seek + ' : ' + 'FAILED' + ' : ' + digestBuffer);
                         }
                     });
-                }
+                });
                 anim.play();
                 return prom 
             })
         }
         promise.then(() => {
             Promise.all(promises).then(() => {
-                window.result = 'status';
+                window.result = status;
             })
         })
     })
