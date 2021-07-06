@@ -2,43 +2,50 @@
 import Vizzu from './lib/vizzu.js';
 
 
-async function digestMessage(message) {
-	const msgUint8 = new TextEncoder().encode(message);
-  	const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
- 	const hashArray = Array.from(new Uint8Array(hashBuffer));
- 	const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
- 	return hashHex;
+function digestMessage(message) {
+    return new Promise(resolve => {
+        let msgUint8 = new TextEncoder().encode(message);
+        crypto.subtle.digest('SHA-256', msgUint8).then(hashBuffer => {
+            let hashArray = Array.from(new Uint8Array(hashBuffer));
+            let hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            resolve(hashHex);
+        })
+    });
 }
 
 
-const queryString = window.location.search;
-const urlParams = new URLSearchParams(queryString);
-const testCase = urlParams.get('testCase');
+let queryString = window.location.search;
+let urlParams = new URLSearchParams(queryString);
+let testCase = urlParams.get('testCase');
 let status = 'PASSED';
 import('./testCases/' + testCase).then((module) => {
     let chart = new Vizzu('vizzuCanvas');
-    let promise = chart.initializing;
-    for (let i = 0; i < module.default.testSteps.length; i++) {
-        promise = promise.then(module.default.testSteps[i].task).then(async (promise) => {
-            let cavasElement = document.getElementById('vizzuCanvas');
-
-            //let canvasElementContext = cavasElement.getContext('2d');
-            //let ImageData = canvasElementContext.getImageData(60, 60, 200, 100);
-            //canvasElementContext.putImageData(ImageData, 150, 10);
-            //console.log(ImageData);
-
-            let dataURL = cavasElement.toDataURL();
-            const digestBuffer = await digestMessage(dataURL);
-            if (module.default.testSteps[i].ref == digestBuffer) {
-                console.log(testCase + ':' + i + ':' + 'PASSED');
-            } else {
-                status = 'FAILED';
-                console.error(testCase + ':' + i + ':' + 'FAILED' + ':' + digestBuffer);
-            }
-            return promise;
+    chart.initializing.then((chart) => {
+        let promise = Promise.resolve(chart);
+        for (let i = 0; i < module.default.testSteps.length; i++) {
+            promise = promise.then((chart) => {
+                let prom = module.default.testSteps[i].task(chart)
+                let anim = chart.animation;
+                for (let j = 20; j <= 100; j+=20) {
+                    anim.pause();
+                    anim.seek(j + '%');
+                    let cavasElement = document.getElementById('vizzuCanvas');
+                    let dataURL = cavasElement.toDataURL();
+                    digestMessage(dataURL).then(digestBuffer => {
+                        if (module.default.testSteps[i].ref == digestBuffer) {
+                            console.log(testCase + ':' + i + ':' + j + ':' + 'PASSED');
+                        } else {
+                            status = 'FAILED';
+                            console.error(testCase + ':' + i + ':' + j + ':' + 'FAILED' + ':' + digestBuffer);
+                        }
+                    })
+                }
+                anim.play();
+                return prom 
+            })
+        }
+        promise.then(() => {
+            window.result = 'status';
         })
-    }
-    promise.then(async () => {
-        window.result = status;
     })
 })

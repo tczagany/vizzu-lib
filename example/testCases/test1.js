@@ -26,7 +26,7 @@ const testSteps = [
                 legend: null,
             }
         }),
-        ref: 'bdcd5b1f7162e4a8fdb2227365471f14fcca6c6850d1b22f4bb4c9b859e90e83'},
+        ref: 'c79f4aebf290438567ad121bd92059678475fef0fcc3e257a944219a029449cf'},
     { task: chart => chart.animate(
         {
             data: {
