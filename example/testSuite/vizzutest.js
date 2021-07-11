@@ -41,6 +41,7 @@ class TestSuite {
     async runTestSuite(filters) {
         try {
             let testCases = this.#filterTestCases(filters)
+            console.log('Selected Test Cases: ' + testCases);
             if (testCases.length > 0) {
                 this.#startTestSuite();
                 for (let i = 0; i < testCases.length; i++) {
@@ -66,13 +67,17 @@ class TestSuite {
             ans = this.#testCases;
         } else {
             filters.forEach(filter => {
-                let testCase = path.parse(filter).base
+                let testCase = path.parse(filter).base;
                 if (this.#testCases.includes(testCase)) {
-                    ans.push(testCase)
+                    if (path.relative(filter, this.#testCasesPath + '/' + testCase) == '') {
+                        if (!ans.includes(testCase)) {
+                            ans.push(testCase);
+                        }
+                    }
                 }
             });
         }
-        return ans        
+        return ans;
     }
 
     async #runTestCase(testCase) {
@@ -152,9 +157,9 @@ class TestSuite {
 try {
     const argv = yargs
         .usage('Usage: $0 [testCases] [options]')
-        .example('$0 test1.js test2.js', 'Run test1.js and test2.js')
-        .example('$0 testCases/test1.js', 'Run test1.js')
-        .example('$0 ./testCases/test1.js', 'Run test1.js')
+        .example('$0 testCases/test1.js testCases/test2.js', 'Run test1.js and test2.js')
+        .example('$0 testCases/test?.js', 'Run test1.js and test2.js')
+        .example('$0 testCases/*', 'Run test1.js and test2.js')
         .help('h')
         .alias('h', 'help')
         .version('0.0.1')
