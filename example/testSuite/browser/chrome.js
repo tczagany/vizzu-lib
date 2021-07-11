@@ -1,6 +1,6 @@
-let webdriver = require('selenium-webdriver');
-let chrome = require('selenium-webdriver/chrome');
-let chromedriver = require('chromedriver');
+const webdriver = require('selenium-webdriver');
+const chrome = require('selenium-webdriver/chrome');
+const chromedriver = require('chromedriver');
 
 
 class Chrome {
@@ -39,13 +39,14 @@ class Chrome {
     closeBrowser() {
         this.#driver.quit();
     }
-
-    getDriver() {
-        return this.#driver;
-    }
+    
 
     async getUrl(url) {
         await this.#driver.get(url);
+    }
+
+    async executeScript(script) {
+        return await this.#driver.executeScript(script);
     }
 }
 

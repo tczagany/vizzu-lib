@@ -2,6 +2,11 @@
 import Vizzu from './lib/vizzu.js';
 
 
+function catchError(err) {
+    console.log(err)
+    window.result = 'ERROR';
+}
+
 function digestMessage(message) {
     return new Promise(resolve => {
         let msgUint8 = new TextEncoder().encode(message);
@@ -9,7 +14,7 @@ function digestMessage(message) {
             let hashArray = Array.from(new Uint8Array(hashBuffer));
             let hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
             resolve(hashHex);
-        })
+        }).catch((err) => { catchError(err) });
     });
 }
 
@@ -19,7 +24,7 @@ let urlParams = new URLSearchParams(queryString);
 let testCase = urlParams.get('testCase');
 let status = 'PASSED';
 
-import('./testCases/' + testCase).then((module) => {
+import('./testSuite/testCases/' + testCase).then((module) => {
     let chart = new Vizzu('vizzuCanvas');
     chart.initializing.then((chart) => {
         let promise = Promise.resolve(chart);
@@ -49,16 +54,18 @@ import('./testCases/' + testCase).then((module) => {
                             status = 'FAILED';
                             console.error(testCase + ' : ' + i + ' : ' + seek + ' : ' + 'FAILED' + ' : ' + digestBuffer);
                         }
-                    });
+                    }).catch((err) => { catchError(err) });
                 });
                 anim.play();
                 return prom 
-            })
+            }).catch((err) => { catchError(err) });
         }
         promise.then(() => {
             Promise.all(promises).then(() => {
-                window.result = status;
-            })
-        })
-    })
-})
+                if (typeof window.result === 'undefined') {
+                    window.result = status;
+                }
+            }).catch((err) => { catchError(err) });
+        }).catch((err) => { catchError(err) });
+    }).catch((err) => { catchError(err) });
+}).catch((err) => { catchError(err) });

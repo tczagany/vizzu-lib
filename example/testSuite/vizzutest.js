@@ -1,11 +1,11 @@
-let AggregateError = require('aggregate-error');
+const AggregateError = require('aggregate-error');
 
-let fs = require('fs');
-let path = require('path');
-let webdriver = require('selenium-webdriver');
+const fs = require('fs');
+const path = require('path');
+const yargs = require('yargs');
 
-let Workspace = require('./workspace.js');
-let Chrome = require('./browser/chrome.js');
+const Workspace = require('./workspace.js');
+const Chrome = require('./browser/chrome.js');
 
 
 class TestSuite {
@@ -38,18 +38,20 @@ class TestSuite {
     }
 
 
-    async runTestSuite() {
+    async runTestSuite(filters) {
         try {
-            this.#startTestSuite();
-            for (let i = 0; i < this.#testCases.length; i++) {
-                await this.#runTestCase(i);
+            let testCases = this.#filterTestCases(filters)
+            if (testCases.length > 0) {
+                this.#startTestSuite();
+                for (let i = 0; i < testCases.length; i++) {
+                    await this.#runTestCase(testCases[i]);
+                }
             }
         } catch (error) {
             throw error;
         } finally {
             this.#finishTestSuite();
         }
-        
     }
 
 
@@ -58,24 +60,39 @@ class TestSuite {
         console.log('Test Cases: ' + this.#testCases);
     }
 
-    async #runTestCase(index) {
-        await this.#browser.getUrl('http://127.0.0.1:' + String(this.#workspace.getWorkspacePort()) + '/index.html' + '?testCase=' + this.#testCases[index]);
+    #filterTestCases(filters) {
+        let ans = [];
+        if (filters.length == 0) {
+            ans = this.#testCases;
+        } else {
+            filters.forEach(filter => {
+                let testCase = path.parse(filter).base
+                if (this.#testCases.includes(testCase)) {
+                    ans.push(testCase)
+                }
+            });
+        }
+        return ans        
+    }
+
+    async #runTestCase(testCase) {
+        await this.#browser.getUrl('http://127.0.0.1:' + String(this.#workspace.getWorkspacePort()) + '/index.html' + '?testCase=' + testCase);
         const now = Date.now();
         const timeout = 60000;
         while (true) {
             if (Date.now() > now + timeout) {
-                console.error(this.#testCases[index] + ' : ' + 'FAILED - TIMEOUT');
-                this.#testResults.failed.push(this.#testCases[index]);
+                console.error(testCase + ' : ' + 'FAILED - TIMEOUT');
+                this.#testResults.failed.push(testCase);
                 break;
             }
-            let testResult= await this.#browser.getDriver().executeScript('if (window.hasOwnProperty("result")) { return result } else { return \'PENDING\' }');
-            if (testResult == 'PASSED' || testResult == 'FAILED') {
+            let testResult= await this.#browser.executeScript('if (window.hasOwnProperty("result")) { return result } else { return \'PENDING\' }');
+            if (testResult == 'PASSED' || testResult == 'FAILED' || testResult == 'ERROR') {
                 if (testResult == 'PASSED') {
-                    console.log(this.#testCases[index] + ' : ' + testResult);
-                    this.#testResults.passed.push(this.#testCases[index]);
+                    console.log(testCase + ' : ' + testResult);
+                    this.#testResults.passed.push(testCase);
                 } else {
-                    console.error(this.#testCases[index] + ' : ' + testResult);
-                    this.#testResults.failed.push(this.#testCases[index]);
+                    console.error(testCase + ' : ' + testResult);
+                    this.#testResults.failed.push(testCase);
                 }
                 break;
             }
@@ -83,7 +100,7 @@ class TestSuite {
     }
 
     #startTestSuite() {
-        this.#workspace = new Workspace(this.#testCasesPath + '/../');
+        this.#workspace = new Workspace(this.#testCasesPath + '/../../');
         this.#workspace.openWorkspace();
         console.log('Listening at http://127.0.0.1:' + String(this.#workspace.getWorkspacePort()) + '/');
         this.#browser = new Chrome();
@@ -110,25 +127,42 @@ class TestSuite {
             errors.push(error);
         }
         try {
-            this.#browser.closeBrowser();
+            if(typeof this.#browser !== 'undefined') {
+                this.#browser.closeBrowser();
+            }
         } catch (error) {
             errors.push(error);
         }
         try {
-            this.#workspace.closeWorkspace();
+            if(typeof this.#workspace !== 'undefined') {
+                this.#workspace.closeWorkspace();
+            }
         } catch (error) {
             errors.push(error);
         }
-        if (errors.length > 0) {
+        if (errors.length > 1) {
             throw new AggregateError(errors);
+        } else if (errors.length == 1) {
+            throw errors[0];
         }
     }
 }
 
 
 try {
-    let test = new TestSuite('../testCases');
-    test.runTestSuite();
+    const argv = yargs
+        .usage('Usage: $0 [testCases] [options]')
+        .example('$0 test1.js test2.js', 'Run test1.js and test2.js')
+        .example('$0 testCases/test1.js', 'Run test1.js')
+        .example('$0 ./testCases/test1.js', 'Run test1.js')
+        .help('h')
+        .alias('h', 'help')
+        .version('0.0.1')
+        .alias('v', 'version')
+        .argv;
+
+    let test = new TestSuite('./testCases');
+    test.runTestSuite(argv._);
 } catch (error) {
     console.error(error);
     process.exitCode = 1;
