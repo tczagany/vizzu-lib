@@ -4,18 +4,21 @@ const fs = require('fs');
 const path = require('path');
 const yargs = require('yargs');
 
-const Workspace = require('./workspace.js');
-const Chrome = require('./browser/chrome.js');
+const Workspace = require('./modules/host/workspace.js');
+const Chrome = require('./modules/browser/chrome.js');
+
 
 
 class TestSuite {
+
+    #workspacePath = __dirname + '/../..';
+    #workspace;
     
     #testCasesPath;
     #testCases;
 
     #testResults = { 'passed': [], 'failed': [] };
 
-    #workspace;
     #browser;
 
 
@@ -81,7 +84,8 @@ class TestSuite {
     }
 
     async #runTestCase(testCase) {
-        await this.#browser.getUrl('http://127.0.0.1:' + String(this.#workspace.getWorkspacePort()) + '/index.html' + '?testCase=' + testCase);
+        await this.#browser.getUrl('http://127.0.0.1:' + String(this.#workspace.getWorkspacePort()) + '/test/integration/modules/client/index.html' + '?testCase=' + testCase);
+
         const now = Date.now();
         const timeout = 60000;
         while (true) {
@@ -90,24 +94,38 @@ class TestSuite {
                 this.#testResults.failed.push(testCase);
                 break;
             }
-            let testResult= await this.#browser.executeScript('if (window.hasOwnProperty("result")) { return result } else { return \'PENDING\' }');
-            if (testResult == 'PASSED' || testResult == 'FAILED' || testResult == 'ERROR') {
-                if (testResult == 'PASSED') {
-                    console.log(testCase + ' : ' + testResult);
+            let testResult= await this.#browser.executeScript('if (window.hasOwnProperty("results")) { return results } else { return \'undefined\' }');
+            if (testResult != 'undefined') {
+                if (testResult.result == 'PASSED') {
+                    console.log(testCase + ' : ' + testResult.result);
                     this.#testResults.passed.push(testCase);
                 } else {
-                    console.error(testCase + ' : ' + testResult);
+                    console.error(testCase + ' : ' + testResult.result);
                     this.#testResults.failed.push(testCase);
+                }
+                if (testResult.result == 'FAILED') { //if (testResult.result != 'ERROR') {
+                    let testResultPath = __dirname + '/testReport/' + testCase;
+                    fs.mkdirSync(testResultPath, { recursive: true });
+                    for (let i = 0; i < testResult.seeks.length; i++) {
+                        for (let j = 0; j < testResult.seeks[i].length; j++) {
+                            fs.writeFile(testResultPath + '/' + i + '_' + testResult.seeks[i][j] + ".png", testResult.images[i][j].substring(22), 'base64', error => {
+                                if (error) {
+                                    throw error;
+                                }
+                            });
+                        }
+                    }
                 }
                 break;
             }
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
     }
 
     #startTestSuite() {
-        this.#workspace = new Workspace(this.#testCasesPath + '/../../');
+        this.#workspace = new Workspace(__dirname + '/../../');
         this.#workspace.openWorkspace();
-        console.log('Listening at http://127.0.0.1:' + String(this.#workspace.getWorkspacePort()) + '/');
+        console.log('Listening at http://127.0.0.1:' + String(this.#workspace.getWorkspacePort()));
         this.#browser = new Chrome();
         this.#browser.openBrowser(false);
     }
@@ -166,7 +184,7 @@ try {
         .alias('v', 'version')
         .argv;
 
-    let test = new TestSuite('./testCases');
+    let test = new TestSuite(__dirname + '/testCases');
     test.runTestSuite(argv._);
 } catch (error) {
     console.error(error);
