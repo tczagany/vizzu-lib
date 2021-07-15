@@ -15,7 +15,7 @@ class TestSuite {
     #workspace;
     
     #testCasesPath;
-    #testCases;
+    #testCases = [];
 
     #testResults = { 'passed': [], 'failed': [] };
 
@@ -40,7 +40,6 @@ class TestSuite {
         return this.#testCases;
     }
 
-
     async runTestSuite(filters) {
         try {
             let testCases = this.#filterTestCases(filters)
@@ -51,16 +50,20 @@ class TestSuite {
                     await this.#runTestCase(testCases[i]);
                 }
             }
-        } catch (error) {
-            throw error;
+        } catch (err) {
+            throw err;
         } finally {
             this.#finishTestSuite();
         }
     }
 
-
     #setTestCases() {
-        this.#testCases = fs.readdirSync(this.#testCasesPath);
+        let files = fs.readdirSync(this.#testCasesPath);
+        files.forEach(file => {
+            if (path.extname(file) == '.mjs') {
+                this.#testCases.push(path.parse(file).name);
+            }
+        })
         console.log('Test Cases: ' + this.#testCases);
     }
 
@@ -84,8 +87,9 @@ class TestSuite {
     }
 
     async #runTestCase(testCase) {
+        let testResultPath = __dirname + '/testReport/' + testCase;
+        fs.rmdirSync(testResultPath, { recursive: true });
         await this.#browser.getUrl('http://127.0.0.1:' + String(this.#workspace.getWorkspacePort()) + '/test/integration/modules/client/index.html' + '?testCase=' + testCase);
-
         const now = Date.now();
         const timeout = 60000;
         while (true) {
@@ -104,17 +108,25 @@ class TestSuite {
                     this.#testResults.failed.push(testCase);
                 }
                 if (testResult.result == 'FAILED') { //if (testResult.result != 'ERROR') {
-                    let testResultPath = __dirname + '/testReport/' + testCase;
                     fs.mkdirSync(testResultPath, { recursive: true });
+                    let hashList = [];
                     for (let i = 0; i < testResult.seeks.length; i++) {
+                        hashList[i] = {};
                         for (let j = 0; j < testResult.seeks[i].length; j++) {
-                            fs.writeFile(testResultPath + '/' + i + '_' + testResult.seeks[i][j] + ".png", testResult.images[i][j].substring(22), 'base64', error => {
-                                if (error) {
-                                    throw error;
+                            hashList[i][testResult.seeks[i][j]] = testResult.hashes[i][j];
+                            fs.writeFile(testResultPath + '/' + testCase + '_' + i + '_' + testResult.seeks[i][j] + ".png", testResult.images[i][j].substring(22), 'base64', err => {
+                                if (err) {
+                                    throw err;
                                 }
                             });
                         }
                     }
+                    hashList = JSON.stringify(hashList, null, 4);
+                    fs.writeFile(testResultPath + '/' + testCase + '.json', hashList, (err) => {
+                        if (err) {
+                            throw err;
+                        }
+                    });
                 }
                 break;
             }
@@ -143,30 +155,30 @@ class TestSuite {
     }
 
     #finishTestSuite() {
-        let errors = [];
+        let errs = [];
         try {
             this.#logTestSuiteResults();
-        } catch (error) {
-            errors.push(error);
+        } catch (err) {
+            errs.push(err);
         }
         try {
             if(typeof this.#browser !== 'undefined') {
                 this.#browser.closeBrowser();
             }
-        } catch (error) {
-            errors.push(error);
+        } catch (err) {
+            errs.push(err);
         }
         try {
             if(typeof this.#workspace !== 'undefined') {
                 this.#workspace.closeWorkspace();
             }
-        } catch (error) {
-            errors.push(error);
+        } catch (err) {
+            errs.push(err);
         }
-        if (errors.length > 1) {
-            throw new AggregateError(errors);
-        } else if (errors.length == 1) {
-            throw errors[0];
+        if (errs.length > 1) {
+            throw new AggregateError(errs);
+        } else if (errs.length == 1) {
+            throw errs[0];
         }
     }
 }
@@ -186,7 +198,7 @@ try {
 
     let test = new TestSuite(__dirname + '/testCases');
     test.runTestSuite(argv._);
-} catch (error) {
-    console.error(error);
+} catch (err) {
+    console.error(err);
     process.exitCode = 1;
 }  
