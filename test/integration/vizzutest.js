@@ -1,4 +1,4 @@
-const AggregateError = require('aggregate-error');
+const AggregateError = import('aggregate-error');
 
 const fs = require('fs');
 const path = require('path');
@@ -6,7 +6,6 @@ const yargs = require('yargs');
 
 const Workspace = require('./modules/host/workspace.js');
 const Chrome = require('./modules/browser/chrome.js');
-
 
 
 class TestSuite {

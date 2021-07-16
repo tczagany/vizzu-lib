@@ -13,4 +13,5 @@ tmp
 git.cpp
 cvizzu.js
 node_modules
+package-lock.json
 Makefile
