@@ -5,6 +5,8 @@
         "aggregate-error": "*",
         "yargs": "*",
         "selenium-webdriver": "*",
-        "chromedriver": "*"
+        "chromedriver": "*",
+        "finalhandler": "*",
+        "serve-static": "*"
     }
 }
