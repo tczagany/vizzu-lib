@@ -23,8 +23,8 @@ class Chrome {
 
         const options = new chrome.Options();
         if (headless) {
-            options.headless();
-        }
+            options.addArguments('--headless', '--no-sandbox', '--disable-dev-shm-usage');
+        } 
         this.#driver = new webdriver.Builder()
                 .forBrowser('chrome')
                 .setChromeOptions(options)
