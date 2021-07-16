@@ -4,6 +4,7 @@
     "dependencies": {
         "aggregate-error": "*",
         "yargs": "*",
-        "selenium-webdriver": "*"
+        "selenium-webdriver": "*",
+        "chromedriver": "*"
     }
 }
