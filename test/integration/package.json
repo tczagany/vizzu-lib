@@ -1,0 +1,7 @@
+{
+    "name": "vizzutest",
+    "type": "commonjs",
+    "dependencies": {
+        "aggregate-error": "^4.0.0"
+    }
+}

@@ -139,7 +139,7 @@ class TestSuite {
         this.#workspace.openWorkspace();
         console.log('Listening at http://127.0.0.1:' + String(this.#workspace.getWorkspacePort()));
         this.#browser = new Chrome();
-        this.#browser.openBrowser(false);
+        this.#browser.openBrowser();
     }
 
     #logTestSuiteResults() {
