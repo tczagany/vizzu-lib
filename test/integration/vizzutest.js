@@ -3,6 +3,7 @@ const AggregateError = import('aggregate-error');
 const fs = require('fs');
 const path = require('path');
 const yargs = require('yargs');
+const fetch = require('node-fetch');
 
 const Workspace = require('./modules/host/workspace.js');
 const Chrome = require('./modules/browser/chrome.js');
@@ -39,9 +40,9 @@ class TestSuite {
         return this.#testCases;
     }
 
-    async runTestSuite(filters) {
+    async runTestSuite() {
         try {
-            let testCases = this.#filterTestCases(filters)
+            let testCases = this.#filterTestCases(argv._)
             console.log('Selected Test Cases: ' + testCases);
             if (testCases.length > 0) {
                 this.#startTestSuite();
@@ -85,51 +86,73 @@ class TestSuite {
         return ans;
     }
 
+    async #runVizzu(testCase, vizzuUrl) {
+        await this.#browser.getUrl('http://127.0.0.1:' + String(this.#workspace.getWorkspacePort())
+            + '/test/integration/modules/client/index.html'
+            + '?testCase=' + testCase
+            + '&vizzuUrl=' + vizzuUrl);
+            const now = Date.now();
+            const timeout = 60000;
+            while (true) {
+                if (Date.now() > now + timeout) {
+                    return { result: 'TIMEOUT' };
+                }
+                let testResult= await this.#browser.executeScript('if (window.hasOwnProperty("results")) { return results } else { return \'undefined\' }');
+                if (testResult != 'undefined') {
+                    return testResult;
+                }
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+    }
+
     async #runTestCase(testCase) {
         let testResultPath = __dirname + '/testReport/' + testCase;
         fs.rmdirSync(testResultPath, { recursive: true });
-        await this.#browser.getUrl('http://127.0.0.1:' + String(this.#workspace.getWorkspacePort()) + '/test/integration/modules/client/index.html' + '?testCase=' + testCase);
-        const now = Date.now();
-        const timeout = 60000;
-        while (true) {
-            if (Date.now() > now + timeout) {
-                console.error(testCase + ' : ' + 'FAILED - TIMEOUT');
-                this.#testResults.failed.push(testCase);
-                break;
-            }
-            let testResult= await this.#browser.executeScript('if (window.hasOwnProperty("results")) { return results } else { return \'undefined\' }');
-            if (testResult != 'undefined') {
-                if (testResult.result == 'PASSED') {
-                    console.log(testCase + ' : ' + testResult.result);
-                    this.#testResults.passed.push(testCase);
-                } else {
-                    console.error(testCase + ' : ' + testResult.result);
-                    this.#testResults.failed.push(testCase);
-                }
-                if (testResult.result == 'FAILED') { //if (testResult.result != 'ERROR') {
-                    fs.mkdirSync(testResultPath, { recursive: true });
-                    let hashList = [];
-                    for (let i = 0; i < testResult.seeks.length; i++) {
-                        hashList[i] = {};
-                        for (let j = 0; j < testResult.seeks[i].length; j++) {
-                            hashList[i][testResult.seeks[i][j]] = testResult.hashes[i][j];
-                            fs.writeFile(testResultPath + '/' + testCase + '_' + i + '_' + testResult.seeks[i][j] + ".png", testResult.images[i][j].substring(22), 'base64', err => {
-                                if (err) {
-                                    throw err;
-                                }
-                            });
-                        }
-                    }
-                    hashList = JSON.stringify(hashList, null, 4);
-                    fs.writeFile(testResultPath + '/' + testCase + '.json', hashList, (err) => {
+        let testResult = await this.#runVizzu(testCase, argv.vizzuUrl);
+        if (testResult.result == 'PASSED') {
+            console.log(testCase + ' : ' + testResult.result);
+            this.#testResults.passed.push(testCase);
+        } else {
+            console.error(testCase + ' : ' + testResult.result);
+            this.#testResults.failed.push(testCase);
+        }
+        if (testResult.result == 'FAILED' && !argv.disableReport) { //if (testResult.result != 'ERROR') {
+            fs.mkdirSync(testResultPath, { recursive: true });
+            let hashList = [];
+            for (let i = 0; i < testResult.seeks.length; i++) {
+                hashList[i] = {};
+                for (let j = 0; j < testResult.seeks[i].length; j++) {
+                    hashList[i][testResult.seeks[i][j]] = testResult.hashes[i][j];
+                    fs.writeFile(testResultPath + '/' + testCase + '_' + i + '_' + testResult.seeks[i][j] + ".png", testResult.images[i][j].substring(22), 'base64', err => {
                         if (err) {
                             throw err;
                         }
                     });
                 }
-                break;
             }
-            await new Promise(resolve => setTimeout(resolve, 50));
+            hashList = JSON.stringify(hashList, null, 4);
+            fs.writeFile(testResultPath + '/' + testCase + '.json', hashList, (err) => {
+                if (err) {
+                    throw err;
+                }
+            });
+            try {
+                let sha = await fetch('https://vizzu-lib-main.storage.googleapis.com/sha');
+                let vizzuUrl = 'https://vizzu-lib-main-sha.storage.googleapis.com/lib-' + await sha.text();
+                let refResult = await this.#runVizzu(testCase, vizzuUrl);
+                for (let i = 0; i < testResult.seeks.length; i++) {
+                    for (let j = 0; j < refResult.seeks[i].length; j++) {
+                        fs.writeFile(testResultPath + '/' + testCase + '_' + i + '_' + testResult.seeks[i][j] + "-ref.png", testResult.images[i][j].substring(22), 'base64', err => {
+                            if (err) {
+                                throw err;
+                            }
+                        });
+                    }
+                }
+                fs.copyFileSync(this.#testCasesPath + '/' + testCase + '.json', testResultPath + '/' + testCase + '-ref.json');
+            } catch (err) {
+                console.error(err);
+            }
         }
     }
 
@@ -138,7 +161,7 @@ class TestSuite {
         this.#workspace.openWorkspace();
         console.log('Listening at http://127.0.0.1:' + String(this.#workspace.getWorkspacePort()));
         this.#browser = new Chrome();
-        this.#browser.openBrowser();
+        this.#browser.openBrowser(!argv.disableHeadlessBrowser);
     }
 
     #logTestSuiteResults() {
@@ -184,19 +207,34 @@ class TestSuite {
 
 
 try {
-    const argv = yargs
+    var argv = yargs
         .usage('Usage: $0 [testCases] [options]')
-        .example('$0 testCases/test1.js testCases/test2.js', 'Run test1.js and test2.js')
-        .example('$0 testCases/test?.js', 'Run test1.js and test2.js')
-        .example('$0 testCases/*', 'Run test1.js and test2.js')
+
+        .example('$0', 'Run all tests in the testCases folder')
+        .example('$0 testCases/*', 'Run all tests in the testCases folder')
+        .example('$0 testCases/example.mjs', 'Run example.mjs')
+        .example('$0 testCases/exampl?.js', 'Run example.mjs')
+        
         .help('h')
         .alias('h', 'help')
         .version('0.0.1')
         .alias('v', 'version')
+        .boolean('b')
+        .alias('b', 'disableHeadlessBrowser')
+        .default('b', false)
+        .describe('b', 'Disable to use headless browser')
+        .boolean('r')
+        .alias('r', 'disableReport')
+        .default('r', false)
+        .describe('r', 'Disable to create detailed report')
+        .alias('u', 'vizzuUrl')
+        .describe('u', 'Change vizzu.js url')
+        .nargs('u', 1)
+        .default('u', '/example/lib')
         .argv;
 
     let test = new TestSuite(__dirname + '/testCases');
-    test.runTestSuite(argv._);
+    test.runTestSuite(argv);
 } catch (err) {
     console.error(err);
     process.exitCode = 1;

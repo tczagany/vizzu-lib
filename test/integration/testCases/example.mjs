@@ -4,7 +4,7 @@ const testData = {
         {
             name: 'Colors',
             type: 'categories',
-            values: ['red', 'green', 'yellow']
+            values: ['red', 'green', 'blue']
         },
         {
             name: 'Val',
@@ -70,4 +70,4 @@ const testSteps = [
 ]
 
 
-export default { testData, testSteps }
+export default testSteps

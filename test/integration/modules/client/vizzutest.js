@@ -1,4 +1,4 @@
-import Vizzu from 'https://vizzu-lib-main.storage.googleapis.com/lib/vizzu.js';
+//import Vizzu from 'https://vizzu-lib-main.storage.googleapis.com/lib/vizzu.js';
 //import Vizzu from '/example/lib/vizzu.js'
 
 
@@ -16,65 +16,67 @@ function digestMessage(message) {
     });
 }
 
-
 let queryString = window.location.search;
 let urlParams = new URLSearchParams(queryString);
 let testCase = urlParams.get('testCase');
+let vizzuUrl = urlParams.get('vizzuUrl');
 let results = { result: 'PASSED', seeks: [], images: [], hashes: [] };
 
-
-import('/test/integration/testCases/' + testCase + '.mjs').then((module) => {
-    return fetch('/test/integration/testCases/' + testCase + '.json')
-        .then(rawhashList => rawhashList.json())
-        .then(hashList => {
-            let chart = new Vizzu('vizzuCanvas');
-            return chart.initializing.then((chart) => {
-                let promise = Promise.resolve(chart);
-                let promises = [];
-                for (let i = 0; i < module.default.testSteps.length; i++) {
-                    promise = promise.then((chart) => {
-                        let prom = module.default.testSteps[i](chart)
-                        let anim = chart.animation;
-                        anim.pause();
-                        let seeks = Object.keys(hashList[i])
-                        seeks.sort(function(a, b) {
-                            return parseInt(a.replace('%', '')) - parseInt(b.replace('%', ''));
-                        });
-                        results.seeks[i] = [];
-                        results.images[i] = [];
-                        results.hashes[i] = [];
-                        seeks.forEach(key => {
-                            let seek = key.replace('%', '') + '%'
-                            results.seeks[i].push(seek);
-                            let hash = hashList[i][key]
-                            anim.seek(seek);
-                            chart.render.updateFrame(true);
-                            let cavasElement = document.getElementById('vizzuCanvas');
-                            let dataURL = cavasElement.toDataURL();
-                            results.images[i].push(dataURL);
-                            let digest = digestMessage(dataURL);
-                            digest = digest.then(digestBuffer => {
-                                results.hashes[i].push(digestBuffer);
-                                if (hash == digestBuffer) {
-                                    console.log(testCase + ' : ' + i + ' : ' + seek + ' : ' + 'PASSED');
-                                } else {
-                                    results.result = 'FAILED';
-                                    console.error(testCase + ' : ' + i + ' : ' + seek + ' : ' + 'FAILED' + ' : ' + digestBuffer);
-                                }
+import(vizzuUrl + '/vizzu.js').then((vizzuModule) => {
+    var Vizzu = vizzuModule.default;
+    return import('/test/integration/testCases/' + testCase + '.mjs').then((testCasesModule) => {
+        return fetch('/test/integration/testCases/' + testCase + '.json')
+            .then(rawhashList => rawhashList.json())
+            .then(hashList => {
+                let chart = new Vizzu('vizzuCanvas');
+                return chart.initializing.then((chart) => {
+                    let promise = Promise.resolve(chart);
+                    let promises = [];
+                    for (let i = 0; i < testCasesModule.default.length; i++) {
+                        promise = promise.then((chart) => {
+                            let prom = testCasesModule.default[i](chart)
+                            let anim = chart.animation;
+                            anim.pause();
+                            let seeks = Object.keys(hashList[i])
+                            seeks.sort(function(a, b) {
+                                return parseInt(a.replace('%', '')) - parseInt(b.replace('%', ''));
                             });
-                            promises.push(digest);
+                            results.seeks[i] = [];
+                            results.images[i] = [];
+                            results.hashes[i] = [];
+                            seeks.forEach(key => {
+                                let seek = key.replace('%', '') + '%'
+                                results.seeks[i].push(seek);
+                                let hash = hashList[i][key]
+                                anim.seek(seek);
+                                chart.render.updateFrame(true);
+                                let cavasElement = document.getElementById('vizzuCanvas');
+                                let dataURL = cavasElement.toDataURL();
+                                results.images[i].push(dataURL);
+                                let digest = digestMessage(dataURL);
+                                digest = digest.then(digestBuffer => {
+                                    results.hashes[i].push(digestBuffer);
+                                    if (hash == digestBuffer) {
+                                        console.log(testCase + ' : ' + i + ' : ' + seek + ' : ' + 'PASSED');
+                                    } else {
+                                        results.result = 'FAILED';
+                                        console.error(testCase + ' : ' + i + ' : ' + seek + ' : ' + 'FAILED' + ' : ' + digestBuffer);
+                                    }
+                                });
+                                promises.push(digest);
+                            });
+                            anim.play();
+                            return prom 
                         });
-                        anim.play();
-                        return prom 
-                    });
-                }
-                return promise.then(() => {
-                    return Promise.all(promises).then(() => {
-                        if (typeof window.results === 'undefined') {
-                            window.results = results;
-                        }
+                    }
+                    return promise.then(() => {
+                        return Promise.all(promises).then(() => {
+                            if (typeof window.results === 'undefined') {
+                                window.results = results;
+                            }
+                        });
                     });
                 });
             });
-        });
+    });
 }).catch((err) => { catchError(err) });

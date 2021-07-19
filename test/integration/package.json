@@ -7,6 +7,7 @@
         "selenium-webdriver": "*",
         "chromedriver": "*",
         "finalhandler": "*",
-        "serve-static": "*"
+        "serve-static": "*",
+        "node-fetch": "*"
     }
 }
