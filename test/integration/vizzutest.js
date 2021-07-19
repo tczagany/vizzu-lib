@@ -116,7 +116,7 @@ class TestSuite {
             console.error(testCase + ' : ' + testResult.result);
             this.#testResults.failed.push(testCase);
         }
-        if (testResult.result == 'FAILED' && !argv.disableReport) { //if (testResult.result != 'ERROR') {
+        if (testResult.result == 'FAILED' && !argv.disableReport) {
             fs.mkdirSync(testResultPath, { recursive: true });
             let hashList = [];
             for (let i = 0; i < testResult.seeks.length; i++) {
@@ -137,19 +137,35 @@ class TestSuite {
                 }
             });
             try {
-                let sha = await fetch('https://vizzu-lib-main.storage.googleapis.com/sha');
-                let vizzuUrl = 'https://vizzu-lib-main-sha.storage.googleapis.com/lib-' + await sha.text();
-                let refResult = await this.#runVizzu(testCase, vizzuUrl);
-                for (let i = 0; i < testResult.seeks.length; i++) {
-                    for (let j = 0; j < refResult.seeks[i].length; j++) {
-                        fs.writeFile(testResultPath + '/' + testCase + '_' + i + '_' + testResult.seeks[i][j] + "-ref.png", testResult.images[i][j].substring(22), 'base64', err => {
-                            if (err) {
-                                throw err;
+                let hashPath = this.#testCasesPath + '/' + testCase + '.json';
+                let hashObject = JSON.parse(fs.readFileSync(hashPath, 'utf8'));
+                let isRefExist = true;
+                loop1:
+                    for (let i = 0; i < hashObject.length; i++) {
+                        let keys = Object.keys(hashObject[i]);
+                        loop2:
+                            for (let j = 0; i < keys.length; i++) {
+                                if (hashObject[i][keys[j]] == '') {
+                                    isRefExist = false;
+                                    break loop1;
+                                }
                             }
-                        });
                     }
+                if (isRefExist) {
+                    let sha = await fetch('https://vizzu-lib-main.storage.googleapis.com/sha');
+                    let vizzuUrl = 'https://vizzu-lib-main-sha.storage.googleapis.com/lib-' + await sha.text();
+                    let refResult = await this.#runVizzu(testCase, vizzuUrl);
+                    for (let i = 0; i < refResult.seeks.length; i++) {
+                        for (let j = 0; j < refResult.seeks[i].length; j++) {
+                            fs.writeFile(testResultPath + '/' + testCase + '_' + i + '_' + refResult.seeks[i][j] + "-ref.png", refResult.images[i][j].substring(22), 'base64', err => {
+                                if (err) {
+                                    throw err;
+                                }
+                            });
+                        }
+                    }
+                    fs.copyFileSync(hashPath, testResultPath + '/' + testCase + '-ref.json');
                 }
-                fs.copyFileSync(this.#testCasesPath + '/' + testCase + '.json', testResultPath + '/' + testCase + '-ref.json');
             } catch (err) {
                 console.error(err);
             }
