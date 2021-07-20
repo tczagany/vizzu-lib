@@ -56,11 +56,13 @@ bool DragObject::dragMoved(const Geom::Point &pos)
 
 	if (!fromWidget.lock()
 		|| !fromWidget.lock()->getBoundary().contains
-				(fromWidget.lock()->getTransform().inverse()(pos)))
+				(fromWidget.lock()->getTransform().inverse() * pos))
 		leftFromWidget = true;
 
 	auto overed = getOveredWidget().lock();
-	if (overed && !overed->getBoundary().contains(overed->getTransform().inverse()(pos))) {
+	if (overed && !overed->getBoundary()
+		.contains(overed->getTransform().inverse() * pos)) 
+	{
 		overed->dragLeft(getAs<DragObject>());
 		updateOvered(std::weak_ptr<Widget>());
 	}

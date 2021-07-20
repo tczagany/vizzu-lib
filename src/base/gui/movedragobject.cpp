@@ -19,7 +19,7 @@ bool MoveDragObject::dragMoved(const Geom::Point &pos)
 	auto widget = getFromWidget().lock();
 	if (widget)
 	{
-		auto newPos = widget->getTransform().inverse()(pos);
+		auto newPos = widget->getTransform().inverse() * pos;
 
 		if (!moveStarted && (newPos - lastPos).abs() < deadZone) {
 			return false;

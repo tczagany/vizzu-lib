@@ -2,6 +2,7 @@
 #define GEOM_AFFINETRANSFORM
 
 #include "point.h"
+#include <array>
 
 namespace Geom
 {
@@ -15,32 +16,33 @@ class Polygon;
 class AffineTransform
 {
 public:
-	Geom::Point offset;
-	double scale;
-	double rotate;
+	double m[3][3];
 
 	AffineTransform();
-	AffineTransform(Geom::Point offset, double scale);
+	AffineTransform(
+		double m00, double m01, double m02,
+		double m10, double m11, double m12,
+		double m22 = 1);
+	static AffineTransform Offset(Geom::Point offset);
+	static AffineTransform Scale(double scale);
+	static AffineTransform Rotation(double angle);
+
 	AffineTransform(Geom::Rect from, Geom::Rect to);
 
 	AffineTransform inverse() const;
 	bool transforms() const;
 
-	AffineTransform &operator+=(const Geom::Point &offset);
-	AffineTransform &operator*=(double scale);
+	void offset(const Geom::Point &offset);
+
+	AffineTransform &operator+=(const AffineTransform &other);
 	AffineTransform &operator*=(const AffineTransform &other);
-	AffineTransform operator+(const Geom::Point &offset) const;
-	AffineTransform operator*(double scale) const;
-	AffineTransform operator*(const AffineTransform &other) const;
+	AffineTransform &operator*=(double value);
 	bool operator==(const AffineTransform &other) const;
 
-	double operator()(double original) const;
-	Geom::Point operator()(const Geom::Point &original) const;
-	Geom::Size operator()(const Geom::Size &original) const;
-	Geom::Rect operator()(const Geom::Rect &original) const;
-	Geom::Line operator()(const Geom::Line &original) const;
-	Geom::Circle operator()(const Geom::Circle &original) const;
-	Geom::Polygon operator()(const Geom::Polygon &original) const;
+	Geom::Point operator*(const Geom::Point &original) const;
+	Geom::Line operator*(const Geom::Line &original) const;
+	Geom::Circle operator*(const Geom::Circle &original) const;
+	Geom::Polygon operator*(const Geom::Polygon &original) const;
 };
 
 }

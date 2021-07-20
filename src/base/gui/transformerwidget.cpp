@@ -52,23 +52,23 @@ void TransformerWidget::resetSelfTransform()
 
 DragObjectPtr TransformerWidget::onMouseDown(const Geom::Point &pos)
 {
-	auto res = ContainerWidget::onMouseDown(transform.inverse()(pos));
+	auto res = ContainerWidget::onMouseDown(transform.inverse() * pos);
 	return res;
 }
 
 bool TransformerWidget::onMouseUp(const Geom::Point &pos, DragObjectPtr dragObject)
 {
-	return ContainerWidget::onMouseUp(transform.inverse()(pos), dragObject);
+	return ContainerWidget::onMouseUp(transform.inverse() * pos, dragObject);
 }
 
 bool TransformerWidget::onMouseMove(const Geom::Point &pos, DragObjectPtr &dragObject)
 {
-	return ContainerWidget::onMouseMove(transform.inverse()(pos), dragObject);
+	return ContainerWidget::onMouseMove(transform.inverse() * pos, dragObject);
 }
 
 std::string TransformerWidget::getHint(const Geom::Point &pos)
 {
-	return ContainerWidget::getHint(transform.inverse()(pos));
+	return ContainerWidget::getHint(transform.inverse() * pos);
 }
 
 void TransformerWidget::onDraw(Gfx::ICanvas &canvas)
@@ -116,7 +116,8 @@ void ShiftableWidget::shiftCanvas(const Geom::Point &delta)
 {
 	if (shiftable)
 	{
-		auto shifted = getSelfTransform() + delta;
+		auto shifted = getSelfTransform();
+		shifted.offset(delta);
 		setSelfTransform(shifted);
 	}
 }

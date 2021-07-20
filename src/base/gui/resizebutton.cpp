@@ -23,7 +23,7 @@ public:
 
 		auto widget = getFromWidget().lock();
 		if (widget) {
-			auto actPos = widget->getTransform().inverse()(pos);
+			auto actPos = widget->getTransform().inverse() * pos;
 			resizeButton.lock()->resizeParent(actPos - lastPos);
 			lastPos = actPos;
 			return true;

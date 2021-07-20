@@ -19,11 +19,11 @@ MainWidget::MainWidget(const GUI::ScreenInfo &screenInfo) :
 void MainWidget::onUpdateSize(Gfx::ICanvas &info, Geom::Size &size)
 {
 	boundary.size = size;
-	size = getSelfTransform().inverse()(size);
+	size = getSelfTransform().inverse() * size;
 	for (const auto &child : children) {
 		child->updateSize(info, size);
 	}
-	size = getSelfTransform()(size);
+	size = getSelfTransform() * size;
 }
 
 DragObjectPtr MainWidget::onMouseDown(const Geom::Point &pos)
