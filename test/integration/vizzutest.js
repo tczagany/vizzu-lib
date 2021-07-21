@@ -152,7 +152,7 @@ class TestSuite {
                             }
                     }
                 if (isRefExist) {
-                    let sha = await fetch('https://vizzu-lib-main.storage.googleapis.com/sha');
+                    let sha = await fetch('https://vizzu-lib-main.storage.googleapis.com/lib/sha');
                     let vizzuUrl = 'https://vizzu-lib-main-sha.storage.googleapis.com/lib-' + await sha.text();
                     let refResult = await this.#runVizzu(testCase, vizzuUrl);
                     for (let i = 0; i < refResult.seeks.length; i++) {
