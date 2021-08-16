@@ -23,6 +23,7 @@ std::string EventDispatcher::Params::toJsonString() const
 {
 	return
 		"{"
+			"\"id\":" + std::to_string((intptr_t)this) + ","
 			"\"event\":\"" + event->name() + "\","
 			"\"data\":" + dataToJson() + ","
 			"\"sender\":" + (sender ? sender->toJsonString() : "null") +

@@ -5,7 +5,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} \
  -s EXPORT_ES6=1 \
  -s FILESYSTEM=0 \
  -s EXPORT_NAME='VizzuModule' \
- -s EXPORTED_FUNCTIONS=['_vizzu_init',\
+ -s EXPORTED_FUNCTIONS=['_chart_create',\
 '_vizzu_poll',\
 '_vizzu_mouseDown',\
 '_vizzu_mouseUp',\

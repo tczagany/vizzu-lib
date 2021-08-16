@@ -66,14 +66,14 @@ export default class Vizzu
 	setStyle(style)
 	{
 		this.iterateObject(style, (path, value) => {
-			this.call(this.module._style_setValue)(path, value);
+			this.call(this.module._style_setValue)(this.chart, path, value);
 		});
 	}
 
 	setDescriptor(descriptor)
 	{
 		this.iterateObject(descriptor, (path, value) => {
-			this.call(this.module._chart_setValue)(path, value);
+			this.call(this.module._chart_setValue)(this.chart, path, value);
 		});
 	}
 
@@ -98,7 +98,7 @@ export default class Vizzu
 			&& typeof animOptions === 'object')
 		{
 			this.iterateObject(animOptions, (path, value) => {
-				this.call(this.module._anim_setValue)(path, value);
+				this.call(this.module._anim_setValue)(this.chart, path, value);
 			});
 		}
 
@@ -107,7 +107,7 @@ export default class Vizzu
 				resolve(this);
 				this.module.removeFunction(callbackPtr);
 			}, 'v');
-			this.call(this.module._chart_animate)(callbackPtr);
+			this.call(this.module._chart_animate)(this.chart, callbackPtr);
 		});
 	}
 
@@ -170,8 +170,7 @@ export default class Vizzu
 		this.events = new Events(this);
 		this.module.events = this.events;
 		this.render.init(this.call(this.module._vizzu_update), canvas, false);
-		this.call(this.module._vizzu_init)();
-		this.call(this.module._vizzu_setLogging)(false);
+		this.chart = this.call(this.module._chart_create)();
 
 		this.setupDOMEventHandlers(canvas);
 

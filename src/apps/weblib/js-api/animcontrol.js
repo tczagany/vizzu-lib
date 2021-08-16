@@ -30,7 +30,8 @@ export default class AnimControl
 		let cparam = this.chart.toCString(param);
 
 		try {
-			this.chart.call(this.chart.module._anim_control)(ccommand, cparam);
+			this.chart.call(this.chart.module._anim_control)
+				(this.chart.chart, ccommand, cparam);
 		} finally
 		{
 			this.chart.module._free(cparam);

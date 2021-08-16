@@ -111,7 +111,7 @@ export default class Data
 		try
 		{
 			this.chart.call(this.chart.module._data_addCategories)
-				(cname, ptrArr, categories.length);
+				(this.chart.chart, cname, ptrArr, categories.length);
 		}
 		finally
 		{
@@ -143,7 +143,7 @@ export default class Data
 		try
 		{
 			this.chart.call(this.chart.module._data_addValues)
-				(cname, valArr, values.length);
+				(this.chart.chart, cname, valArr, values.length);
 		}
 		finally
 		{
@@ -165,11 +165,13 @@ export default class Data
 			let callback = ptr => filter(new DataRecord(this.chart, ptr));
 			this.filter = this.chart.module.addFunction(callback, 'ii');
 			// remove function
-			this.chart.call(this.chart.module._chart_setFilter)(this.filter);
+			this.chart.call(this.chart.module._chart_setFilter)
+				(this.chart.chart, this.filter);
 		}
 		else if (filter === null)
 		{
-			this.chart.call(this.chart.module._chart_setFilter)(0);
+			this.chart.call(this.chart.module._chart_setFilter)
+				(this.chart.chart, 0);
 		}
 		else throw new Error('data filter is not a function or null');
 	}
