@@ -6,10 +6,11 @@
 using namespace Vizzu;
 using namespace Vizzu::Anim::Morph;
 
-template <typename T> class StyleMorph : public ::Anim::IElement
+class StyleMorph : public ::Anim::IElement
 {
 public:
-	StyleMorph(const T &source, const T &target, T &actual) :
+	StyleMorph(const Style::IParam &source, const Style::IParam &target, 
+		Style::IParam &actual) :
 	    source(source),
 	    target(target),
 	    actual(actual)
@@ -17,12 +18,18 @@ public:
 
 	void transform(double factor) override
 	{
-		*actual = Math::interpolate(*source, *target, factor);
+		if (factor <= 0.0) actual = source;
+		else if (factor >= 1.0) actual = target;
+		else {
+			actual = source;
+			actual *= (1.0 - factor);
+			actual += target/* * factor*/;
+		}
 	}
 
-	const T &source;
-	const T &target;
-	T &actual;
+	const Style::IParam &source;
+	const Style::IParam &target;
+	Style::IParam &actual;
 };
 
 StyleMorphFactory::StyleMorphFactory(
@@ -40,33 +47,34 @@ StyleMorphFactory::StyleMorphFactory(
 	actual.visit(*this);
 }
 
-template <typename T>
-StyleMorphFactory &StyleMorphFactory::operator()(T &value,
-    const char *)
+Style::Visitor &StyleMorphFactory::operator()(
+	Style::IParam &value, 
+	const std::string &)
 {
-	if constexpr (Refl::isReflectable<T, StyleMorphFactory>)
-	{
-		value.visit(*this);
-	}
-	else if constexpr (
 	//todo: interpolate the folloving styles also
-	   !std::is_same_v<typename T::value_type, Gfx::Font::Style>
+/*	   !std::is_same_v<typename T::value_type, Gfx::Font::Style>
 	&& !std::is_same_v<typename T::value_type, Text::NumberFormat>
 	&& !std::is_same_v<typename T::value_type, Styles::MarkerLabel::Format>
 	&& !std::is_same_v<typename T::value_type, Gfx::ColorPalette>
-	)
+	)*/
+	auto offset = reinterpret_cast<std::byte *>(&value) - pActual;
+	const auto &source = *reinterpret_cast<const Style::IParam *>(pSource + offset);
+	const auto &target = *reinterpret_cast<const Style::IParam *>(pTarget + offset);
+
+	if (source != target)
 	{
-		auto offset = reinterpret_cast<std::byte *>(&value) - pActual;
-		const T &source = *reinterpret_cast<const T *>(pSource + offset);
-		const T &target = *reinterpret_cast<const T *>(pTarget + offset);
+		auto morph = std::make_unique<StyleMorph>
+			(source, target, value);
 
-		if (*source != *target)
-		{
-			auto morph = std::make_unique<StyleMorph<T>>
-				(source, target, value);
-
-			group.addElement(std::move(morph), options);
-		}
+		group.addElement(std::move(morph), options);
 	}
+	return *this;
+}
+
+Style::Visitor &StyleMorphFactory::operator()(
+	Style::Group &group, 
+	const std::string &)
+{
+	group.visit(*this);
 	return *this;
 }

@@ -12,14 +12,16 @@ using namespace Vizzu::Styles;
 
 Font Chart::defaultFont{
 	.fontFamily = ::Anim::String("Roboto, sans-serif"),
-	.fontStyle = Gfx::Font::Style::normal,
+	.fontStyle = ::Anim::Interpolated<Gfx::Font::Style>
+		(Gfx::Font::Style::normal),
 	.fontWeight = Gfx::Font::Weight::Normal(),
 	.fontSize = Gfx::Length(16)
 };
 
 Chart Chart::def()
 {
-	return {
+	return Chart();
+/*	return {
 		{
 			.paddingTop = Gfx::Length(),
 			.paddingRight = Gfx::Length(),
@@ -380,5 +382,5 @@ Chart Chart::def()
 			.columnMaxPadding = 0.2,
 			.columnPaddingDecrease = 5.0
 		}
-	};
+	};*/
 }

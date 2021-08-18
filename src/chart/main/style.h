@@ -50,7 +50,7 @@ struct Padding
 			Geom::Size(rect.size - margin.getSpace()).positive());
 	}
 
-	void visit(auto &visitor)
+	void visit(Style::Visitor &visitor) 
 	{
 		visitor
 			(paddingTop, "paddingTop")
@@ -60,19 +60,20 @@ struct Padding
 	}
 };
 
-struct Font {
+struct Font 
+{
 	Param<::Anim::String> fontFamily;
-	Param<Gfx::Font::Style> fontStyle;
+	Param<::Anim::Interpolated<Gfx::Font::Style>> fontStyle;
 	Param<Gfx::Font::Weight> fontWeight;
 	Param<Gfx::Length> fontSize;
 	const Font *fontParent = nullptr;
 
 	double calculatedSize() const 
 	{
-		if (fontSize.has_value() && fontSize->isAbsolute()) 
+		if (fontSize && fontSize->isAbsolute()) 
 			return fontSize->get();
 		
-		if (fontSize.has_value() && fontParent) 
+		if (fontSize && fontParent) 
 			return fontSize->get(fontParent->calculatedSize());
 		
 		if (fontParent)
@@ -83,7 +84,7 @@ struct Font {
 
 	std::string calculatedFamily() const 
 	{
-		if (fontFamily.has_value() && !fontFamily->values[0].value.empty())
+		if (fontFamily && !fontFamily->values[0].value.empty())
 			return fontFamily->values[0].value;
 		
 		if (fontParent) 
@@ -95,10 +96,10 @@ struct Font {
 	explicit operator Gfx::Font() const
 	{
 		return Gfx::Font(calculatedFamily(),
-			*fontStyle, *fontWeight, calculatedSize());
+			fontStyle->get(), *fontWeight, calculatedSize());
 	}
 
-	void visit(auto &visitor)
+	void visit(Style::Visitor &visitor)
 	{
 		visitor
 			(fontFamily, "fontFamily")
@@ -108,16 +109,17 @@ struct Font {
 	}
 };
 
-struct Text {
+struct Text
+{
 	class Enum(TextAlign)(center, left, right);
 
 	Param<Gfx::Color> color;
-	Param<Anim::Interpolated<TextAlign>> textAlign;
+	Param<::Anim::Interpolated<TextAlign>> textAlign;
 	Param<Gfx::Color> backgroundColor;
-	Param<Anim::Interpolated<Overflow>> overflow;
-	Param<::Text::NumberFormat> numberFormat;
+	Param<::Anim::Interpolated<Overflow>> overflow;
+	Param<::Anim::Interpolated<::Text::NumberFormat>> numberFormat;
 
-	void visit(auto &visitor)
+	void visit(Style::Visitor &visitor)
 	{
 		visitor
 			(color, "color")
@@ -128,12 +130,13 @@ struct Text {
 	}
 };
 
-struct Box {
+struct Box
+{
 	Param<Gfx::Color> backgroundColor;
 	Param<Gfx::Color> borderColor;
 	Param<double> borderWidth;
 
-	void visit(auto &visitor)
+	void visit(Style::Visitor &visitor) 
 	{
 		visitor
 		    (backgroundColor, "backgroundColor")
@@ -144,17 +147,23 @@ struct Box {
 
 struct Label : Padding, Font, Text
 {
-
-	void visit(auto &visitor)
+	void visit(Style::Visitor &visitor) 
 	{
 		Padding::visit(visitor);
 		Font::visit(visitor);
 		Text::visit(visitor);
 	}
-
 };
 
-struct Tick {
+struct SimpleLabel : Style::Group, Label
+{
+	void visit(Style::Visitor &visitor) override 
+	{
+		Label::visit(visitor);
+	}
+};
+
+struct Tick : Style::Group {
 	//todo> top, bottom, both
 	class Enum(Position)(outside, inside, center);
 
@@ -163,7 +172,7 @@ struct Tick {
 	Param<Gfx::Length> length;
 	Param<::Anim::Interpolated<Position>> position;
 
-	void visit(auto &visitor)
+	void visit(Style::Visitor &visitor) override 
 	{
 		visitor
 			(color, "color")
@@ -173,12 +182,12 @@ struct Tick {
 	}
 };
 
-struct Guide
+struct Guide : Style::Group
 {
 	Param<Gfx::Color> color;
 	Param<double> lineWidth;
 
-	void visit(auto &visitor)
+	void visit(Style::Visitor &visitor) override 
 	{
 		visitor
 			(color, "color")
@@ -186,11 +195,11 @@ struct Guide
 	}
 };
 
-struct Interlacing
+struct Interlacing : Style::Group
 {
 	Param<Gfx::Color> color;
 
-	void visit(auto &visitor)
+	void visit(Style::Visitor &visitor) override 
 	{
 		visitor
 			(color, "color");
@@ -204,7 +213,7 @@ struct OrientedLabel : Label
 	Param<::Anim::Interpolated<Orientation>> orientation;
 	Param<double> angle;
 
-	void visit(auto &visitor)
+	void visit(Style::Visitor &visitor)
 	{
 		Label::visit(visitor);
 		visitor
@@ -213,7 +222,7 @@ struct OrientedLabel : Label
 	}
 };
 
-struct AxisLabel : OrientedLabel
+struct AxisLabel : Style::Group, OrientedLabel
 {
 	class SpecNameEnum(Position)
 		(axis, min_edge, max_edge)
@@ -224,7 +233,7 @@ struct AxisLabel : OrientedLabel
 	Param<::Anim::Interpolated<Position>> position;
 	Param<::Anim::Interpolated<Side>> side;
 
-	void visit(auto &visitor)
+	void visit(Style::Visitor &visitor) override 
 	{
 		OrientedLabel::visit(visitor);
 		visitor(position, "position")
@@ -232,7 +241,7 @@ struct AxisLabel : OrientedLabel
 	}
 };
 
-struct AxisTitle : Label
+struct AxisTitle : Style::Group, Label
 {
 	class SpecNameEnum(Position)
 		(axis, min_edge, max_edge)
@@ -249,7 +258,7 @@ struct AxisTitle : Label
 	Param<::Anim::Interpolated<VSide>> vside;
 	Param<::Anim::Interpolated<Orientation>> orientation;
 
-	void visit(auto &visitor)
+	void visit(Style::Visitor &visitor) override 
 	{
 		Label::visit(visitor);
 		visitor(position, "position")
@@ -260,7 +269,7 @@ struct AxisTitle : Label
 	}
 };
 
-struct Axis
+struct Axis : Style::Group
 {
 	Param<Gfx::Color> color;
 	AxisTitle title;
@@ -269,7 +278,7 @@ struct Axis
 	Guide guides;
 	Interlacing interlacing;
 
-	void visit(auto &visitor)
+	void visit(Style::Visitor &visitor) override 
 	{
 		visitor
 			(color, "color")
@@ -281,16 +290,16 @@ struct Axis
 	}
 };
 
-struct MarkerLabel : OrientedLabel
+struct MarkerLabel : Style::Group, OrientedLabel
 {
 	class Enum(Position)(center, left, right, top, bottom);
 	class Enum(Format)(valueFirst, categoriesFirst);
 
 	Param<::Anim::Interpolated<Position>> position;
 	Param<Gfx::ColorTransform> filter;
-	Param<Format> format;
+	Param<::Anim::Interpolated<Format>> format;
 
-	void visit(auto &visitor)
+	void visit(Style::Visitor &visitor) override 
 	{
 		OrientedLabel::visit(visitor);
 		visitor
@@ -300,18 +309,18 @@ struct MarkerLabel : OrientedLabel
 	}
 };
 
-struct Marker
+struct Marker : Style::Group
 {
 	class Enum(BorderOpacityMode)(straight, premultiplied);
 
 	Param<double> borderWidth;
 	Param<double> borderOpacity;
-	Param<Anim::Interpolated<BorderOpacityMode>> borderOpacityMode;
+	Param<::Anim::Interpolated<BorderOpacityMode>> borderOpacityMode;
 	Param<double> fillOpacity;
 	Guide guides;
 	MarkerLabel label;
 
-	void visit(auto &visitor)
+	void visit(Style::Visitor &visitor) override 
 	{
 		visitor
 			(borderWidth, "borderWidth")
@@ -323,15 +332,16 @@ struct Marker
 	}
 };
 
-struct Legend : Padding, Box
+struct Legend : Style::Group, Padding, Box
 {
-	struct Marker {
+	struct Marker : Style::Group 
+	{
 		class Enum(Type)(circle, square);
 
 		Param<::Anim::Interpolated<Type>> type;
 		Param<Gfx::Length> size;
 
-		void visit(auto &visitor)
+		void visit(Style::Visitor &visitor) override
 		{
 			visitor
 				(type, "type")
@@ -340,11 +350,11 @@ struct Legend : Padding, Box
 	};
 
 	Param<Gfx::Length> width;
-	Label title;
-	Label label;
+	SimpleLabel title;
+	SimpleLabel label;
 	Marker marker;
 
-	void visit(auto &visitor)
+	void visit(Style::Visitor &visitor) override 
 	{
 		Padding::visit(visitor);
 		Box::visit(visitor);
@@ -356,7 +366,7 @@ struct Legend : Padding, Box
 	}
 };
 
-struct Plot : Padding, Box
+struct Plot : Style::Group, Padding, Box
 {
 	Marker marker;
 	Axis xAxis;
@@ -366,7 +376,7 @@ struct Plot : Padding, Box
 		return id == Diag::Scale::Type::X ? xAxis : yAxis;
 	}
 
-	void visit(auto &visitor)
+	void visit(Style::Visitor &visitor) override 
 	{
 		Padding::visit(visitor);
 		Box::visit(visitor);
@@ -377,14 +387,17 @@ struct Plot : Padding, Box
 	}
 };
 
-struct Tooltip
+struct Tooltip : Style::Group
 {
 	Param<double> visible;
 
-	void visit(auto &visitor) { visitor(visible, "visible"); }
+	void visit(Style::Visitor &visitor) override 
+	{ 
+		visitor(visible, "visible"); 
+	}
 };
 
-struct Data
+struct Data : Style::Group
 {
 	Param<Gfx::ColorGradient> colorGradient;
 	Param<Gfx::ColorPalette> colorPalette;
@@ -414,7 +427,7 @@ struct Data
 		return {*columnPaddingDecrease, *barPaddingDecrease };
 	}
 
-	void visit(auto &visitor)
+	void visit(Style::Visitor &visitor) override 
 	{
 		visitor
 			(colorGradient, "colorGradient")
@@ -433,15 +446,15 @@ struct Data
 	}
 };
 
-struct Chart : Padding, Box, Font
+struct Chart : Style::Group, Padding, Box, Font
 {
 	Plot plot;
 	Legend legend;
-	Label title;
+	SimpleLabel title;
 	Tooltip tooltip;
 	Data data;
 
-	void visit(auto &visitor)
+	void visit(Style::Visitor &visitor) override 
 	{
 		Padding::visit(visitor);
 		Box::visit(visitor);

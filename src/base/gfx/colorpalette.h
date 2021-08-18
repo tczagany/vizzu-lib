@@ -28,6 +28,9 @@ public:
 
 	size_t size() const;
 
+	bool operator==(const ColorPalette &) const { return true; }
+	ColorPalette operator*(double) const { return *this; }
+	ColorPalette operator+(const ColorPalette &) const { return *this; }
 private:
 	Colors colors;
 };

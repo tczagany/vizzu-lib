@@ -15,7 +15,7 @@ namespace Anim
 namespace Morph
 {
 
-class StyleMorphFactory
+class StyleMorphFactory : Style::Visitor
 {
 public:
 	StyleMorphFactory(const Styles::Chart &source,
@@ -24,8 +24,8 @@ public:
 		::Anim::Group &group,
 		const ::Anim::Options &options);
 
-	template <typename T>
-	StyleMorphFactory &operator()(T &value, const char *);
+	Style::Visitor &operator()(Style::IParam &value, const std::string &) override;
+	Style::Visitor &operator()(Style::Group &group, const std::string &) override;
 
 private:
 	std::byte *pActual;

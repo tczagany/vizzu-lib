@@ -7,12 +7,13 @@
 #include <type_traits>
 
 #include "base/refl/struct.h"
+#include "param.h"
 
 namespace Style
 {
 
 template <typename Root>
-struct ParamMerger
+struct ParamMerger : Visitor
 {
 	std::byte *result;
 	std::byte *other;
@@ -26,19 +27,18 @@ struct ParamMerger
 		merged.visit(*this);
 	}
 
-	template <typename T>
-	ParamMerger &operator()(T &value, const char *)
+	Visitor &operator()(IParam &value, const std::string &) override
 	{
-		if constexpr (Refl::isReflectable<T, ParamMerger>)
-		{
-			value.visit(*this);
-		}
-		else
-		{
-			const T &otherValue = *reinterpret_cast<const T*>
-				(other + (reinterpret_cast<std::byte*>(&value) - result));
-			if (otherValue) value = *otherValue;
-		}
+		const IParam &otherValue = *reinterpret_cast<const IParam*>
+			(other + (reinterpret_cast<std::byte*>(&value) - result));
+		if (otherValue) value = otherValue;
+
+		return *this;
+	}
+
+	Style::Visitor &operator()(Group &group, const std::string &) override
+	{
+		group.visit(*this);
 		return *this;
 	}
 };

@@ -178,7 +178,7 @@ void drawInterlacing::drawDataLabel(bool horizontal,
 	auto &labelStyle = style.plot.getAxis(axisIndex).label;
 
 	auto str = Text::SmartString::fromNumber(value,
-	    *labelStyle.numberFormat);
+	    labelStyle.numberFormat->get());
 
 	if (*labelStyle.numberFormat != Text::NumberFormat::prefixed)
 		str += " ";

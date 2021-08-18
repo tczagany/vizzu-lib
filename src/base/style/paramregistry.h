@@ -10,6 +10,8 @@
 #include "base/conv/parse.h"
 #include "base/conv/tostring.h"
 
+#include "param.h"
+
 namespace Style
 {
 
@@ -17,11 +19,23 @@ template <typename Root> class ParamRegistry
 {
 public:
 
-	struct IAccessor
+	struct Accessor
 	{
-		virtual ~IAccessor() {};
-		virtual std::string toString(Root &) = 0;
-		virtual void fromString(Root &, const std::string &) = 0;
+		std::string toString(Root &root)
+		{
+			auto &value = *reinterpret_cast<IParam *>(
+			    reinterpret_cast<std::byte *>(&root) + this->offset);
+
+			return value.toString();
+		};
+
+		void fromString(Root &root, const std::string &s) {
+			auto &value = *reinterpret_cast<IParam *>(
+			    reinterpret_cast<std::byte *>(&root) + this->offset);
+
+			value.fromString(s);
+		}
+
 		size_t offset;
 	};
 
@@ -48,27 +62,7 @@ public:
 
 private:
 
-	template <typename T>
-	struct Accessor : IAccessor
-	{
-		std::string toString(Root &root) override
-		{
-			auto &value = *reinterpret_cast<T *>(
-			    reinterpret_cast<std::byte *>(&root) + this->offset);
-
-			return value ? Conv::toString(*value) : "null";
-		};
-
-		void fromString(Root &root, const std::string &s) override {
-			auto &value = *reinterpret_cast<T *>(
-			    reinterpret_cast<std::byte *>(&root) + this->offset);
-
-			if (s == "null") value.reset();
-			else value = Conv::parse<typename T::value_type>(s);
-		}
-	};
-
-	struct Proxy
+	struct Proxy : Style::Visitor
 	{
 		Proxy(ParamRegistry &registry,
 		    std::byte *base,
@@ -78,23 +72,25 @@ private:
 		    currentPath(path)
 		{}
 
-		template <typename T>
-		Proxy &operator()(T &value, const std::string &name)
+		Proxy &operator()(IParam &value, const std::string &name)
 		{
 			auto path = currentPath + (currentPath.empty() ? "" : ".") + name;
 
-			if constexpr (Refl::isReflectable<T, Proxy>)
-			{
-				auto proxy = Proxy(registry, base, path);
-				value.visit(proxy);
-			}
-			else
-			{
-				std::byte *ptr = reinterpret_cast<std::byte *>(&value);
-				IAccessor *accessor = new Accessor<T>();
-				accessor->offset = ptr - base;
-				registry.accessors.emplace(path, accessor);
-			}
+			std::byte *ptr = reinterpret_cast<std::byte *>(&value);
+			Accessor *accessor = new Accessor();
+			accessor->offset = ptr - base;
+			registry.accessors.emplace(path, accessor);
+
+			return *this;
+		}
+
+		Style::Visitor &operator()(Group &group, const std::string &name)
+		{
+			auto path = currentPath + (currentPath.empty() ? "" : ".") + name;
+
+			auto proxy = Proxy(registry, base, path);
+			group.visit(proxy);
+
 			return *this;
 		}
 
@@ -113,7 +109,7 @@ private:
 		root.visit(proxy);
 	}
 
-	std::map<std::string, IAccessor*> accessors;
+	std::map<std::string, Accessor*> accessors;
 };
 
 }

@@ -243,7 +243,7 @@ std::string drawItem::getLabelText()
 				+ val1.value.value * val1.weight;
 
 	auto text = Text::SmartString::fromNumber(value,
-	    *labelStyle.numberFormat);
+	    labelStyle.numberFormat->get());
 
 	if (*labelStyle.numberFormat != Text::NumberFormat::prefixed)
 		text += " ";
@@ -253,7 +253,7 @@ std::string drawItem::getLabelText()
 
 	// todo: interpolate Format
 	typedef Styles::MarkerLabel::Format Format;
-	switch((Format)*labelStyle.format)
+	switch(labelStyle.format->get())
 	{
 	default:
 	case Format::valueFirst:

@@ -34,12 +34,12 @@ struct Fobar
 	Foo foo;
 	Baz baz;
 
-	void visit(auto &visitor)
-	{
+	void visit(auto &/*visitor*/)
+	{/*
 		visitor
 			(foo, "foo")
 			(baz, "baz");
-	}
+	*/}
 };
 
 #endif
