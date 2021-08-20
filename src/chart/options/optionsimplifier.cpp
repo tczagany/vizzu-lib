@@ -22,10 +22,11 @@ void OptionSimplifier::removeNotUsedSeries()
 	{
 		if (stat.usedValueCntOf(index) < 2)
 		{
-			options.getScales().visitAll([=](Scales::Id id, const Scale &scale)
+			options.getScales().visitAll(
+			[=](Scale::Type type, const Scale &scale)
 			{
 				if (scale.isSeriesUsed(index))
-					setter->deleteSeries(id, index);
+					setter->deleteSeries(type, index);
 			});
 		}
 	}

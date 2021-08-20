@@ -40,8 +40,7 @@ public:
 
 	DataCube(const DataTable &table,
 	    const DataCubeOptions &options,
-	    const Filter &filter = Filter(),
-	    size_t repeatCount = 1);
+	    const Filter &filter = Filter());
 
 	const Data &getData() const { return data; }
 	MultiDim::DimIndex getDimBySeries(SeriesIndex index) const;
@@ -71,8 +70,6 @@ public:
 	size_t flatSubSliceIndex(const SeriesList &colIndices,
 							 const MultiDim::MultiIndex &multiIndex) const;
 
-	size_t repeatIndexAt(const MultiDim::MultiIndex &index) const;
-
 	MultiDim::SubSliceIndex subSliceIndex(const SeriesList &colIndices,
 										  MultiDim::MultiIndex multiIndex) const;
 
@@ -95,7 +92,8 @@ private :
 	std::vector<SeriesIndex> seriesBySubIndex;
 
 	static MultiDim::MultiIndex getIndex(const TableRow<double> &row,
-								  const std::vector<SeriesIndex> &indices, size_t repeatIndex, size_t rowIndex);
+								  const std::vector<SeriesIndex> &indices, 
+								  size_t rowIndex);
 
 	MultiDim::SubSliceIndex inverseSubSliceIndex(const SeriesList &colIndices,
 										  MultiDim::MultiIndex multiIndex) const;

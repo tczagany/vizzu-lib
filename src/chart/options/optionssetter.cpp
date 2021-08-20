@@ -28,7 +28,7 @@ void OptionsSetter::setTable(const Data::DataTable *table)
 	this->table = table;
 }
 
-OptionsSetter &OptionsSetter::addSeries(const Scales::Id &scaleId,
+OptionsSetter &OptionsSetter::addSeries(Scale::Type scaleType,
     const std::string &seriesName,
     std::optional<size_t> pos)
 {
@@ -36,12 +36,12 @@ OptionsSetter &OptionsSetter::addSeries(const Scales::Id &scaleId,
 	{
 		auto typeStr = seriesName.substr(1, std::string::npos);
 		auto type = Data::SeriesType::fromString(typeStr);
-		addSeries(scaleId, Data::SeriesIndex(type), pos);
+		addSeries(scaleType, Data::SeriesIndex(type), pos);
 	}
 	else if (table)
 	{
 		auto index = table->getIndex(seriesName);
-		addSeries(scaleId, index, pos);
+		addSeries(scaleType, index, pos);
 	}
 	else
 		throw std::logic_error("no table set for options");
@@ -49,19 +49,19 @@ OptionsSetter &OptionsSetter::addSeries(const Scales::Id &scaleId,
 	return *this;
 }
 
-OptionsSetter &OptionsSetter::deleteSeries(const Scales::Id &scaleId,
+OptionsSetter &OptionsSetter::deleteSeries(Scale::Type scaleType,
     const std::string &seriesName)
 {
 	if (Text::SmartString::startsWith(seriesName, "$"))
 	{
 		auto typeStr = seriesName.substr(1, std::string::npos);
 		auto type = Data::SeriesType::fromString(typeStr);
-		deleteSeries(scaleId, Data::SeriesIndex(type));
+		deleteSeries(scaleType, Data::SeriesIndex(type));
 	}
 	else if (table)
 	{
 		auto index = table->getIndex(seriesName);
-		deleteSeries(scaleId, index);
+		deleteSeries(scaleType, index);
 	}
 	else
 		throw std::logic_error("no table set for options");
@@ -69,26 +69,27 @@ OptionsSetter &OptionsSetter::deleteSeries(const Scales::Id &scaleId,
 	return *this;
 }
 
-OptionsSetter &OptionsSetter::addSeries(const Scales::Id &scaleId,
+OptionsSetter &OptionsSetter::addSeries(Scale::Type scaleType,
 										const Data::SeriesIndex &index,
 										std::optional<size_t> pos)
 {
-	auto res = options.getScales().addSeries(scaleId, index, pos);
+	auto res = options.getScales().addSeries(scaleType, index, pos);
 	changed |= res.first;
 	if (res.first && res.second && onContinousReplaced)
-		onContinousReplaced(scaleId, *res.second);
+		onContinousReplaced(scaleType, *res.second);
 	return *this;
 }
 
-OptionsSetter &OptionsSetter::deleteSeries(const Scales::Id &scaleId, const Data::SeriesIndex &index)
+OptionsSetter &OptionsSetter::deleteSeries(
+	Scale::Type scaleType, const Data::SeriesIndex &index)
 {
-	changed |= options.getScales().removeSeries(scaleId, index);
+	changed |= options.getScales().removeSeries(scaleType, index);
 	return *this;
 }
 
-OptionsSetter &OptionsSetter::clearSeries(const Scales::Id &scaleId)
+OptionsSetter &OptionsSetter::clearSeries(Scale::Type scaleType)
 {
-	changed |= options.getScales().clearSeries(scaleId);
+	changed |= options.getScales().clearSeries(scaleType);
 	return *this;
 }
 
@@ -140,10 +141,10 @@ OptionsSetter &OptionsSetter::setFilter(const Data::Filter &filter)
 	return *this;
 }
 
-OptionsSetter &OptionsSetter::setLabelLevel(const Scales::Id &scaleId,
+OptionsSetter &OptionsSetter::setLabelLevel(Scale::Type scaleType,
     int level)
 {
-	auto &scale = options.getScales().at(scaleId);
+	auto &scale = options.getScales().at(scaleType);
 	changed |= scale.labelLevel.set(level);
 	return *this;
 }
@@ -160,16 +161,17 @@ OptionsSetter &OptionsSetter::setReverse(bool value)
 	return *this;
 }
 
-OptionsSetter &OptionsSetter::setRange(const Scales::Id &scaleId, Type::PhysicalValue<Math::Range<double> > range)
+OptionsSetter &OptionsSetter::setRange(Scale::Type scaleType,
+	Type::PhysicalValue<Math::Range<double> > range)
 {
-	auto &scale = options.getScales().at(scaleId);
+	auto &scale = options.getScales().at(scaleType);
 	changed |= scale.range.set(range);
 	return *this;
 }
 
-OptionsSetter &OptionsSetter::setStackable(const Scales::Id &scaleId, bool value)
+OptionsSetter &OptionsSetter::setStackable(Scale::Type scaleType, bool value)
 {
-	auto &scale = options.getScales().at(scaleId);
+	auto &scale = options.getScales().at(scaleType);
 	if (scale.stackable() != value)
 	{
 		const_cast<bool&>(scale.stackable()) = value;
@@ -191,10 +193,10 @@ OptionsSetter &OptionsSetter::setLegend(std::optional<Scale::Type> type)
 	return *this;
 }
 
-OptionsSetter &OptionsSetter::setTitle(const Scales::Id &scaleId,
+OptionsSetter &OptionsSetter::setTitle(Scale::Type scaleType,
     const std::string &title)
 {
-	auto &scale = options.getScales().at(scaleId);
+	auto &scale = options.getScales().at(scaleType);
 	changed |= scale.title.set(title);
 	return *this;
 }

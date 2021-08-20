@@ -28,9 +28,9 @@ Diagram::Diagram(const Data::DataTable &dataTable, DiagramOptionsPtr opts, Style
 	: dataTable(dataTable),
 	  options(std::move(opts)),
 	  style(std::move(style)),
-	  dataCube(dataTable, options->getScales().getDataCubeOptions(),
-						  options->dataFilter.get(),
-						  options->getScales().maxScaleSize()),
+	  dataCube(dataTable, 
+	  	options->getScales().getDataCubeOptions(),
+		options->dataFilter.get()),
 	  stats(options->getScales(), dataCube)
 {
 	anySelected = false;
@@ -185,20 +185,20 @@ void Diagram::calcAxises(const Data::DataTable &dataTable)
 
 Axis Diagram::calcAxis(Scale::Type type, const Data::DataTable &dataTable)
 {
-	const auto *scale = options->getScales().getScales(Scales::Index{0})[type];
-	if (!scale->isEmpty() && !scale->isPseudoDiscrete())
+	const auto &scale = options->getScales().at(type);
+	if (!scale.isEmpty() && !scale.isPseudoDiscrete())
 	{
 		auto title =
-			scale->title.get().empty()
-			? scale->continousName(dataTable)
-			: scale->title.get();
+			scale.title.get().empty()
+			? scale.continousName(dataTable)
+			: scale.title.get();
 
 		if (type == options->subAxisType()
 			&& options->alignType.get() == Base::Align::Fit)
 		{
 			return Axis(Math::Range<double>(0,100), title, "%");
 		} else {
-			auto unit = dataTable.getInfo(scale->continousId()->getColIndex()).getUnit();
+			auto unit = dataTable.getInfo(scale.continousId()->getColIndex()).getUnit();
 			return Axis(stats.scales[type].range, title, unit);
 		}
 	}
@@ -215,8 +215,7 @@ void Diagram::calcDiscreteAxis(Scale::Type type,
     const Data::DataTable &table)
 {
 	auto &axis = discreteAxises.at(type);
-	Scales::Id scaleId{type, Scales::Index{0}};
-	auto &scale = options->getScales().at(scaleId);
+	auto &scale = options->getScales().at(type);
 	auto dim = scale.labelLevel.get();
 
 	if (scale.discretesIds().empty() || !scale.isPseudoDiscrete()) return;

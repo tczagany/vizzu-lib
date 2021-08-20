@@ -31,10 +31,8 @@ protected:
 	const Data::DataTable &table;
 
 private:
-	void split(const Diag::Scales::Id &mainId,
-	    const Diag::Scales::Id &subId);
-	void stack(const Diag::Scales::Id &mainId,
-	    const Diag::Scales::Id &subId);
+	void split(Diag::Scale::Type mainType, Diag::Scale::Type subType);
+	void stack(Diag::Scale::Type mainType, Diag::Scale::Type subType);
 };
 
 }

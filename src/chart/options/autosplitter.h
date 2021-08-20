@@ -13,10 +13,10 @@ class AutoSplitter : public OptionsDecorator
 public:
 	using OptionsDecorator::OptionsDecorator;
 
-	OptionsSetter &addSeries(const Scales::Id &scaleId,
+	OptionsSetter &addSeries(Scale::Type scaleType,
 	    const Data::SeriesIndex &index,
 	    std::optional<size_t> pos = std::nullopt) override;
-	OptionsSetter &deleteSeries(const Scales::Id &scaleId,
+	OptionsSetter &deleteSeries(Scale::Type scaleType,
 	    const Data::SeriesIndex &index) override;
 
 	OptionsSetter &setSplitted(bool split) override;

@@ -19,30 +19,13 @@ class Scales
 {
 public:
 
-	struct IndexTypeId;
-	typedef Type::UniqueType<uint64_t, IndexTypeId> Index;
-
-	typedef std::vector<Scale> ScaleList;
-	typedef std::array<const Scale *, Scale::id_size> Level;
-
-	struct Id {
-		Scale::Type type;
-		Index index;
-		Id(Scale::Type type, Index index = Index{0})
-			: type(type), index(index)
-		{}
-		std::string toString() const;
-	};
-
 	struct Pos
 	{
-		Scales::Id scaleId;
+		Scale::Type scaleId;
 		int position;
 	};
 
 	Scales();
-
-	Level getScales(Index index) const;
 
 	bool anyAxisSet() const;
 	bool oneAxisSet() const;
@@ -50,7 +33,6 @@ public:
 	bool isEmpty() const;
 
 	bool anyScaleOfType(Scale::Type type) const;
-	Scales::Index maxScaleSize() const;
 
 	Data::DataCubeOptions::IndexSet getDimensions() const;
 	Data::DataCubeOptions::IndexSet getSeries() const;
@@ -58,42 +40,35 @@ public:
 	Data::DataCubeOptions::IndexSet getRealSeries(const std::vector<Scale::Type> &scaleTypes) const;
 	Data::DataCubeOptions getDataCubeOptions() const;
 
-	const Scale &at(const Id &id, bool top = true) const;
-	Scale &at(const Id &id, bool top = true);
-	const Scale &at(const Scale::Type &type,
-					const Index &index = Index{0},
-					bool top = true) const;
-	Scale &at(const Scale::Type &type,
-					const Index &index = Index{0},
-					bool top = true);
-	Id getEmptyAxisId() const;
-
-	const ScaleList &operator[](Scale::Type type) const;
+	const Scale &at(const Scale::Type &type) const;
+	Scale &at(const Scale::Type &type);
+	Scale::Type getEmptyAxisId() const;
 
 	std::pair<bool, Scale::OptionalContinousIndex>
-	addSeries(const Id &id,
+	addSeries(Scale::Type type,
 			  const Data::SeriesIndex &index,
 			  std::optional<size_t> pos = std::nullopt);
-	bool removeSeries(const Id &id, const Data::SeriesIndex &index);
-	bool clearSeries(const Id &id);
+	bool removeSeries(Scale::Type type, const Data::SeriesIndex &index);
+	bool clearSeries(Scale::Type type);
 
 	bool isSeriesUsed(const Data::SeriesIndex &index) const;
 	bool isSeriesUsed(const std::vector<Scale::Type> &scaleTypes,
 					  const Data::SeriesIndex &index) const;
 	size_t count(const Data::SeriesIndex &index) const;
-	std::list<Scales::Id> find(const Data::SeriesIndex &index) const;
+	std::list<Scale::Type> find(const Data::SeriesIndex &index) const;
 	std::list<Scales::Pos> findPos(const Data::SeriesIndex &index) const;
 
 	void reset();
 
 	bool operator==(const Scales& other) const;
 
-	void visitAll(const std::function<void(Id, const Scale&)> &visitor) const;
+	void visitAll(
+		const std::function<
+			void(Scale::Type type, const Scale&)
+		> &visitor) const;
 
 private:
-	std::array<ScaleList, Scale::Type::id_size> scales;
-	std::array<Scale, Scale::Type::id_size> makeNulls() const;
-	Scale &getScale(const Id &id);
+	std::array<Scale, Scale::Type::id_size> scales;
 };
 
 }

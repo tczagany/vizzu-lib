@@ -94,7 +94,7 @@ void Descriptor::setChannelParam(
 	const std::string &value)
 {
 	auto parts = Text::SmartString::split(path, '.');
-	auto id = Scales::Id(Diag::toScaleType(parts.at(1)));
+	auto id = Diag::toScaleType(parts.at(1));
 	auto property = parts.at(2);
 
 	if (property == "title") {
@@ -143,7 +143,7 @@ void Descriptor::setChannelParam(
 std::string Descriptor::getChannelParam(const std::string &path) const
 {
 	auto parts = Text::SmartString::split(path, '.');
-	auto id = Scales::Id(Diag::toScaleType(parts.at(1)));
+	auto id = Diag::toScaleType(parts.at(1));
 	auto property = parts.at(2);
 
 	auto &scale = setter->getOptions().getScales().at(id);

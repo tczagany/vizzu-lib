@@ -3,20 +3,21 @@
 using namespace Vizzu;
 using namespace Vizzu::Diag;
 
-OptionsSetter &OverlappingFixer::addSeries(const Scales::Id &scaleId,
+OptionsSetter &OverlappingFixer::addSeries(
+	Scale::Type scaleType,
     const Data::SeriesIndex &index,
     std::optional<size_t> pos)
 {
-	setter.addSeries(scaleId, index, pos);
+	setter.addSeries(scaleType, index, pos);
 	fixOverlap(false, (ShapeType::Type)options.shapeType.get());
 	return *this;
 }
 
 OptionsSetter &OverlappingFixer::deleteSeries(
-    const Scales::Id &scaleId,
+    Scale::Type scaleType,
     const Data::SeriesIndex &index)
 {
-	setter.deleteSeries(scaleId, index);
+	setter.deleteSeries(scaleType, index);
 	fixOverlap(true, (ShapeType::Type)options.shapeType.get());
 	return *this;
 }
@@ -50,19 +51,15 @@ OptionsSetter &OverlappingFixer::setHorizontal(bool horizontal)
 	if (canOverlap((ShapeType::Type)options.shapeType.get()))
 	{
 		std::list<Data::SeriesIndex> ids;
-		auto sub = options.subAxis(Scales::Index{0});
+		auto sub = options.subAxis();
 		for (const auto &id : sub.discretesIds())
 		{
 			ids.push_back(id);
-			setter.addSeries(
-			    Scales::Id{options.mainAxisType(), Scales::Index{0}},
-			    id);
+			setter.addSeries(options.mainAxisType(), id);
 		}
 		for (const auto &id : ids)
 		{
-			setter.deleteSeries(
-			    Scales::Id{options.subAxisType(), Scales::Index{0}},
-			    id);
+			setter.deleteSeries(options.subAxisType(), id);
 		}
 	}
 	return *this;
@@ -85,28 +82,28 @@ void OverlappingFixer::removeOverlap(bool byDelete)
 
 	for (auto series : usedSeries)
 	{
-		auto scaleIds = options.getScales().find(series);
+		auto scaleTypes = options.getScales().find(series);
 		bool usedOnAxis = false;
 		bool usedOnSize = false;
 
-		for (auto &scaleId : scaleIds)
+		for (auto &scaleType : scaleTypes)
 		{
-			if (isAxis(scaleId.type)) usedOnAxis = true;
-			if (scaleId.type == Scale::Size) usedOnSize = true;
+			if (isAxis(scaleType)) usedOnAxis = true;
+			if (scaleType == Scale::Size) usedOnSize = true;
 		}
 
 		if (!usedOnAxis)
 		{
 			if (byDelete)
 			{
-				for (auto &scaleId : scaleIds)
-					setter.deleteSeries(scaleId, series);
+				for (auto &scaleType : scaleTypes)
+					setter.deleteSeries(scaleType, series);
 			}
 			else
 			{
-				auto id =
-				    Scales::Id{usedOnSize ? options.subAxisType()
-				                          : options.mainAxisType()};
+				auto id = usedOnSize 
+					? options.subAxisType()
+				    : options.mainAxisType();
 				setter.addSeries(id, series);
 			}
 		}

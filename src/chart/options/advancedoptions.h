@@ -14,10 +14,15 @@ public:
 	typedef OptionsSetter Base;
 	using OptionsSetter::OptionsSetter;
 
-	OptionsSetter &addSeries(const Scales::Id &scaleId, const Data::SeriesIndex &index,
-							 std::optional<size_t> pos = std::nullopt) override;
-	OptionsSetter &deleteSeries(const Scales::Id &scaleId, const Data::SeriesIndex &index) override;
+	OptionsSetter &addSeries(Scale::Type scaleType, 
+		const Data::SeriesIndex &index,
+		std::optional<size_t> pos = std::nullopt) override;
+
+	OptionsSetter &deleteSeries(Scale::Type scaleType, 
+		const Data::SeriesIndex &index) override;
+
 	OptionsSetter &setHorizontal(bool horizontal) override;
+
 private:
 	std::optional<bool> horizontalOverride() const;
 	void fixHorizontal();
@@ -32,9 +37,13 @@ public:
 
 	using OrientationSelector::OrientationSelector;
 
-	OptionsSetter &addSeries(const Scales::Id &scaleId, const Data::SeriesIndex &index,
-							 std::optional<size_t> pos = std::nullopt) override;
-	OptionsSetter &deleteSeries(const Scales::Id &scaleId, const Data::SeriesIndex &index) override;
+	OptionsSetter &addSeries(Scale::Type scaleType, 
+		const Data::SeriesIndex &index,
+		std::optional<size_t> pos = std::nullopt) override;
+
+	OptionsSetter &deleteSeries(Scale::Type scaleType,
+		const Data::SeriesIndex &index) override;
+
 	OptionsSetter &setHorizontal(bool horizontal) override;
 private:
 	void handleExists();
@@ -46,7 +55,8 @@ public:
 	using ExistsHandler::ExistsHandler;
 	typedef ExistsHandler Base;
 
-	OptionsSetter &deleteSeries(const Scales::Id &scaleId, const Data::SeriesIndex &index) override;
+	OptionsSetter &deleteSeries(Scale::Type scaleType,
+		const Data::SeriesIndex &index) override;
 };
 
 }

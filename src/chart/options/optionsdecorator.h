@@ -16,18 +16,18 @@ public:
 		setter(setter)
 	{}
 
-	OptionsSetter &addSeries(const Scales::Id &scaleId,
+	OptionsSetter &addSeries(Scale::Type scaleType,
 	    const Data::SeriesIndex &index,
 	    std::optional<size_t> pos = std::nullopt) override
 	{
-		setter.addSeries(scaleId, index, pos);
+		setter.addSeries(scaleType, index, pos);
 		return *this;
 	}
 
-	OptionsSetter &deleteSeries(const Scales::Id &scaleId,
+	OptionsSetter &deleteSeries(Scale::Type scaleType,
 	    const Data::SeriesIndex &index) override
 	{
-		setter.deleteSeries(scaleId, index);
+		setter.deleteSeries(scaleType, index);
 		return *this;
 	}
 
@@ -80,10 +80,10 @@ public:
 		return *this;
 	}
 
-	OptionsSetter &setLabelLevel(const Scales::Id &scaleId,
+	OptionsSetter &setLabelLevel(Scale::Type scaleType,
 	    int level) override
 	{
-		setter.setLabelLevel(scaleId, level);
+		setter.setLabelLevel(scaleType, level);
 		return *this;
 	}
 
@@ -99,17 +99,17 @@ public:
 		return *this;
 	}
 
-	OptionsSetter &setRange(const Scales::Id &scaleId,
+	OptionsSetter &setRange(Scale::Type scaleType,
 	    Type::PhysicalValue<Math::Range<double>> range) override
 	{
-		setter.setRange(scaleId, range);
+		setter.setRange(scaleType, range);
 		return *this;
 	}
 
-	OptionsSetter &setStackable(const Scales::Id &scaleId,
+	OptionsSetter &setStackable(Scale::Type scaleType,
 	    bool value) override
 	{
-		setter.setStackable(scaleId, value);
+		setter.setStackable(scaleType, value);
 		return *this;
 	}
 
