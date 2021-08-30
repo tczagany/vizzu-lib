@@ -193,6 +193,23 @@ void Interface::animControl(const char *command, const char *param)
 	}
 }
 
+const char *Interface::getAnimList()
+{
+	static std::string res = Text::toJSon(Anim::Options::listParams());
+	return res.c_str();
+}
+
+const char *Interface::getAnimValue(const char *path)
+{
+	if (chart)
+	{
+		static std::string res;
+		res = chart->getChart().getAnimOptions().get(path); 
+		return res.c_str();
+	}
+	else throw std::logic_error("No chart exists");
+}
+
 void Interface::setAnimValue(const char *path, const char *value)
 {
 	if (chart) {

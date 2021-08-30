@@ -138,6 +138,16 @@ void chart_animate(void (*callback)())
 	Interface::instance.animate(callback);
 }
 
+const char *anim_getList()
+{
+	return Interface::instance.getAnimList();
+}
+
+const char *anim_getValue(const char *path)
+{
+	return Interface::instance.getAnimValue(path);
+}
+
 void anim_control(const char *command, const char *param)
 {
 	Interface::instance.animControl(command, param);

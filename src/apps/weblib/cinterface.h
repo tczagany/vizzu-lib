@@ -31,6 +31,8 @@ extern void chart_animate(void (*callback)());
 extern int addEventListener(const char *name);
 extern void removeEventListener(const char *name, int id);
 extern void event_preventDefault();
+const char *anim_getList();
+const char *anim_getValue(const char *path);
 extern void anim_control(const char *command, const char *param);
 extern void anim_setValue(const char *path, const char *value);
 
