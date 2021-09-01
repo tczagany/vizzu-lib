@@ -8,11 +8,13 @@ using namespace Vizzu::Draw;
 drawLabel::drawLabel(const Geom::Rect &rect,
     const std::string &text,
     const Styles::Label &style,
+    const Util::EventDispatcher::event_ptr &onDraw,
     Gfx::ICanvas &canvas,
     bool setColor,
     double alpha) :
     text(text),
     style(style),
+    onDraw(onDraw),
     canvas(canvas)
 {
 	if (!style.backgroundColor->isTransparent())
@@ -22,7 +24,7 @@ drawLabel::drawLabel(const Geom::Rect &rect,
 		canvas.rectangle(rect);
 	}
 
-	contentRect = style.contentRect(rect);
+	contentRect = style.contentRect(rect, style.calculatedSize());
 
 	canvas.setFont(Gfx::Font(style));
 	if (setColor) canvas.setTextColor(*style.color * alpha);
@@ -30,15 +32,19 @@ drawLabel::drawLabel(const Geom::Rect &rect,
 	auto textSize = getTextSize();
 	auto textRect = alignText(textSize);
 
-	canvas.text(textRect, text, 0);
+	if (this->onDraw->invoke(OnDrawParam(textRect, text))) 
+		canvas.text(textRect, text);
 }
 
 double drawLabel::getHeight(const Styles::Label &style,
     Gfx::ICanvas &canvas)
 {
-	canvas.setFont(Gfx::Font(style));
-	auto textHeight = canvas.textBoundary("", 0).y;
-	return style.paddingSize().y + textHeight;
+	Gfx::Font font(style);
+	canvas.setFont(font);
+	auto textHeight = canvas.textBoundary("").y;
+	return style.paddingTop->get(textHeight, font.size)
+		 + style.paddingBottom->get(textHeight, font.size)
+		 + textHeight;
 }
 
 Geom::Rect drawLabel::alignText(const Geom::Size &textSize)
@@ -70,7 +76,7 @@ Geom::Size drawLabel::getTextSize()
 {
 	Geom::Size res;
 
-	res = canvas.textBoundary(text, 0);
+	res = canvas.textBoundary(text);
 
 	overflows = res.x > contentRect.size.x;
 

@@ -115,6 +115,10 @@ struct Point
 		return Point(0, y);
 	}
 
+	Point comp(bool horizontal) const {
+		return horizontal ? xComp() : yComp();
+	}
+
 	Point mainComp() const {
 		return fabs(x) >= fabs(y) ? xComp() : yComp();
 	}
@@ -131,6 +135,8 @@ struct Point
 	}
 
 	double abs() const {
+		if (x == 0.0) return fabs(y);
+		if (y == 0.0) return fabs(x);
 		return sqrt(x * x + y * y);
 	}
 
@@ -147,6 +153,8 @@ struct Point
 	}
 
 	double angle(bool fast = false) const {
+		if (y == 0) return x >= 0 ? 0.0 : M_PI;
+		if (x == 0) return y >= 0 ? M_PI / 2.0 : -M_PI / 2;
 		return fast
 				? Math::atan2((float)y, (float)x)
 				: atan2f((float)y, (float)x);
@@ -169,7 +177,7 @@ struct Point
 	Point normal(bool clockwise) const;
 
 	explicit operator std::string() const {
-		return "[ " + std::to_string(x) + ", " + std::to_string(y) + " ]";
+		return "{\"x\":" + std::to_string(x) + ",\"y\":" + std::to_string(y) + "}";
 	}
 
 	double getCoord(bool horizontal) const {

@@ -1,11 +1,15 @@
 #ifndef MORPH_H
 #define MORPH_H
 
+#include <memory>
+
 #include "base/anim/element.h"
 #include "base/math/ratio.h"
 #include "base/math/interpolation.h"
 #include "chart/options/options.h"
 #include "chart/generator/diagram.h"
+
+#include "options.h"
 
 namespace Vizzu
 {
@@ -26,6 +30,8 @@ public:
 	virtual ~AbstractMorph()
 	{}
 
+	static std::unique_ptr<AbstractMorph> create(SectionId sectionId,
+		const Dia &source, const Dia &target, Dia &actual);
 	void transform(double factor) override;
 	virtual std::string name() const = 0;
 	virtual void transform(const Dia&, const Dia&, Dia&, double) const {}
@@ -45,11 +51,19 @@ public:
 	void transform(const Opt&, const Opt&, Opt&, double) const override;
 };
 
-class Enable : public AbstractMorph
+class Show : public AbstractMorph
 {
 public:
 	using AbstractMorph::AbstractMorph;
-	std::string name() const override { return "Enable"; }
+	std::string name() const override { return "Show"; }
+	void transform(const Marker&, const Marker&, Marker&, double) const override;
+};
+
+class Hide : public AbstractMorph
+{
+public:
+	using AbstractMorph::AbstractMorph;
+	std::string name() const override { return "Hide"; }
 	void transform(const Marker&, const Marker&, Marker&, double) const override;
 };
 
@@ -86,7 +100,6 @@ public:
 	using AbstractMorph::AbstractMorph;
 	std::string name() const override { return "Color"; }
 	void transform(const Dia&, const Dia&, Dia&, double) const override;
-	void transform(const Opt&, const Opt&, Opt&, double) const override;
 	void transform(const Marker&, const Marker&, Marker&, double) const override;
 };
 

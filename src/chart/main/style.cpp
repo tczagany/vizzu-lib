@@ -10,14 +10,21 @@ using namespace Vizzu::Styles;
 #pragma clang diagnostic ignored "-Wc99-designator"
 #endif
 
+Font Chart::defaultFont{
+	.fontFamily = ::Anim::String("Roboto, sans-serif"),
+	.fontStyle = Gfx::Font::Style::normal,
+	.fontWeight = Gfx::Font::Weight::Normal(),
+	.fontSize = Gfx::Length(12)
+};
+
 Chart Chart::def()
 {
 	return {
 		{
-			.paddingTop = 0,
-			.paddingRight = 0,
-			.paddingBottom = 0,
-			.paddingLeft = 0
+			.paddingTop = Gfx::Length::Emphemeral(0.0/12.0),
+			.paddingRight = Gfx::Length::Emphemeral(0.0/12.0),
+			.paddingBottom = Gfx::Length::Emphemeral(0.0/12.0),
+			.paddingLeft = Gfx::Length::Emphemeral(0.0/12.0)
 		},
 		{
 			.backgroundColor = Gfx::Color::White(),
@@ -28,14 +35,14 @@ Chart Chart::def()
 			.fontFamily = ::Anim::String("Roboto, sans-serif"),
 			.fontStyle = Gfx::Font::Style::normal,
 			.fontWeight = Gfx::Font::Weight::Normal(),
-			.fontSize = 11
+			.fontSize = Gfx::Length::Emphemeral(1)
 		},
 		.plot = {
 			{
-				.paddingTop = 50,
-				.paddingRight = 50,
-				.paddingBottom = 70,
-				.paddingLeft = 70
+				.paddingTop = Gfx::Length::Emphemeral(50.0/12.0),
+				.paddingRight = Gfx::Length::Emphemeral(50.0/12.0),
+				.paddingBottom = Gfx::Length::Emphemeral(70.0/12.0),
+				.paddingLeft = Gfx::Length::Emphemeral(70.0/12.0)
 			},
 			{
 				.backgroundColor = Gfx::Color(),
@@ -44,97 +51,204 @@ Chart Chart::def()
 			},
 			.marker = {
 				.borderWidth = 1,
-				.borderOpacity = 0.5,
+				.borderOpacity = 1,
 				.borderOpacityMode =
 					::Anim::Interpolated<Marker::BorderOpacityMode>
 					(Marker::BorderOpacityMode::premultiplied),
 				.fillOpacity = 1,
 				.guides = {
-					.color = Gfx::Color::Gray(0.93),
-					.lineWidth = 1
+					.color = Gfx::Color::Gray(0.91),
+					.lineWidth = 0.5
 				},
 				.label = {
 					{
 						{
-							.paddingTop = 5,
-							.paddingRight = 5,
-							.paddingBottom = 5,
-							.paddingLeft = 5
+							{
+								.paddingTop = Gfx::Length::Emphemeral(5/11.0),
+								.paddingRight = Gfx::Length::Emphemeral(5/11.0),
+								.paddingBottom = Gfx::Length::Emphemeral(5/11.0),
+								.paddingLeft = Gfx::Length::Emphemeral(5/11.0)
+							},
+							{
+								.fontFamily = ::Anim::String(),
+								.fontStyle = Gfx::Font::Style::normal,
+								.fontWeight = Gfx::Font::Weight::Bold(),
+								.fontSize = Gfx::Length::Emphemeral(11.0/12.0)
+							},
+							{
+								.color = Param<Gfx::Color>(),
+								.textAlign = Anim::Interpolated<Text::TextAlign>
+									(Text::TextAlign::center),
+								.backgroundColor = Gfx::Color(),
+								.numberFormat = ::Text::NumberFormat::grouped
+							}
 						},
-						{
-							.fontFamily = ::Anim::String("Roboto, sans-serif"),
-							.fontStyle = Gfx::Font::Style::normal,
-							.fontWeight = Gfx::Font::Weight::Normal(),
-							.fontSize = 11
-						},
-						{
-							.color = Param<Gfx::Color>(),
-							.textAlign = Anim::Interpolated<Text::TextAlign>
-								(Text::TextAlign::center),
-							.backgroundColor = Gfx::Color(),
-							.overflow = Anim::Interpolated<Overflow>
-								(Overflow::visible),
-							.numberFormat = ::Text::NumberFormat::prefixed
-						}
+						.orientation = Anim::Interpolated
+							<OrientedLabel::Orientation>
+							(OrientedLabel::Orientation::horizontal),
+						.angle = 0,
 					},
 					.position = Anim::Interpolated<MarkerLabel::Position>
 						(MarkerLabel::Position::center),
-					.filter = Gfx::ColorTransform::Lightness(0.8),
+					.filter = Gfx::ColorTransform::Lightness(0),
 					.format = MarkerLabel::Format::valueFirst
 				}
 			},
-			.axis = {
+			.xAxis = {
 				.color = Gfx::Color::Gray(0.8),
 				.title = {
 					{
-						.paddingTop = 22,
-						.paddingRight = 0,
-						.paddingBottom = 20,
-						.paddingLeft = 0
+						{
+							.paddingTop = Gfx::Length::Emphemeral(20/14.0),
+							.paddingRight = Gfx::Length::Emphemeral(5/14.0),
+							.paddingBottom = Gfx::Length::Emphemeral(5/14.0),
+							.paddingLeft = Gfx::Length::Emphemeral(5/14.0)
+						},
+						{
+							.fontFamily = ::Anim::String(),
+							.fontStyle = Gfx::Font::Style::normal,
+							.fontWeight = Gfx::Font::Weight::Normal(),
+							.fontSize = Gfx::Length::Emphemeral(14.0/12.0)
+						},
+						{
+							.color = Gfx::Color::Gray(0.6),
+							.textAlign = Anim::Interpolated<Text::TextAlign>
+								(Text::TextAlign::left),
+							.backgroundColor = Gfx::Color(),
+							.numberFormat = ::Text::NumberFormat::prefixed
+						}
 					},
-					{
-						.fontFamily = ::Anim::String("Roboto, sans-serif"),
-						.fontStyle = Gfx::Font::Style::normal,
-						.fontWeight = Gfx::Font::Weight::Normal(),
-						.fontSize = 14
-					},
-					{
-						.color = Gfx::Color::Gray(0.6),
-						.textAlign = Anim::Interpolated<Text::TextAlign>
-							(Text::TextAlign::left),
-						.backgroundColor = Gfx::Color(),
-						.overflow = Anim::Interpolated<Overflow>
-							(Overflow::visible),
-						.numberFormat = ::Text::NumberFormat::prefixed
-					},
+					.position = Anim::Interpolated<AxisTitle::Position>
+						(AxisTitle::Position::min_edge),
+					.side = Anim::Interpolated<AxisTitle::Side>
+						(AxisTitle::Side::negative),
+					.vposition = Anim::Interpolated<AxisTitle::VPosition>
+						(AxisTitle::VPosition::middle),
+					.vside = Anim::Interpolated<AxisTitle::VSide>
+						(AxisTitle::VSide::upon),
+					.orientation = Anim::Interpolated<AxisTitle::Orientation>
+						(AxisTitle::Orientation::horizontal)
 				},
 				.label = {
 					{
-						.paddingTop = 20,
-						.paddingRight = 20,
-						.paddingBottom = 25,
-						.paddingLeft = 25
+						{
+							{
+								.paddingTop = Gfx::Length::Emphemeral(5/12.0),
+								.paddingRight = Gfx::Length::Emphemeral(5/12.0),
+								.paddingBottom = Gfx::Length::Emphemeral(5/12.0),
+								.paddingLeft = Gfx::Length::Emphemeral(5/12.0)
+							},
+							{
+								.fontFamily = ::Anim::String(),
+								.fontStyle = Gfx::Font::Style::normal,
+								.fontWeight = Gfx::Font::Weight::Normal(),
+								.fontSize = Gfx::Length::Emphemeral(12.0/12.0)
+							},
+							{
+								.color = Gfx::Color::Gray(0.6),
+								.textAlign = Anim::Interpolated<Text::TextAlign>
+										(Text::TextAlign::left),
+								.backgroundColor = Gfx::Color(),
+								.numberFormat = ::Text::NumberFormat::prefixed
+							}
+						},
+						.orientation = Anim::Interpolated
+							<OrientedLabel::Orientation>
+							(OrientedLabel::Orientation::horizontal),
+						.angle = 0,
 					},
-					{
-						.fontFamily = ::Anim::String("Roboto, sans-serif"),
-						.fontStyle = Gfx::Font::Style::normal,
-						.fontWeight = Gfx::Font::Weight::Normal(),
-						.fontSize = 12
-					},
-					{
-						.color = Gfx::Color::RGB(0xababab),
-						.textAlign = Anim::Interpolated<Text::TextAlign>
-								(Text::TextAlign::left),
-						.backgroundColor = Gfx::Color(),
-						.overflow = Anim::Interpolated<Overflow>
-							(Overflow::hidden),
-						.numberFormat = ::Text::NumberFormat::prefixed
-					},
+					.position = Anim::Interpolated<AxisLabel::Position>
+						(AxisLabel::Position::min_edge),
+					.side = Anim::Interpolated<AxisLabel::Side>
+						(AxisLabel::Side::negative)
 				},
 				.ticks = {
 					.color = Gfx::Color::Gray(0.8),
 					.lineWidth = 1,
-					.length = 5,
+					.length = Gfx::Length::Emphemeral(5.0/12.0),
+					.position = ::Anim::Interpolated<Tick::Position>
+						(Tick::Position::outside)
+				},
+				.guides = {
+					.color = Gfx::Color::Gray(0.93),
+					.lineWidth = 1
+				},
+				.interlacing = {
+					.color = Gfx::Color::Gray(0.97)
+				}
+			},
+			.yAxis = {
+				.color = Gfx::Color::Gray(0.8),
+				.title = {
+					{
+						{
+							.paddingTop = Gfx::Length::Emphemeral(5/14.0),
+							.paddingRight = Gfx::Length::Emphemeral(5/14.0),
+							.paddingBottom = Gfx::Length::Emphemeral(15/14.0),
+							.paddingLeft = Gfx::Length::Emphemeral(5/14.0)
+						},
+						{
+							.fontFamily = ::Anim::String(),
+							.fontStyle = Gfx::Font::Style::normal,
+							.fontWeight = Gfx::Font::Weight::Normal(),
+							.fontSize = Gfx::Length::Emphemeral(14.0/12.0)
+						},
+						{
+							.color = Gfx::Color::Gray(0.6),
+							.textAlign = Anim::Interpolated<Text::TextAlign>
+								(Text::TextAlign::left),
+							.backgroundColor = Gfx::Color(),
+			 				.numberFormat = ::Text::NumberFormat::prefixed
+						}
+					},
+					.position = Anim::Interpolated<AxisTitle::Position>
+						(AxisTitle::Position::min_edge),
+					.side = Anim::Interpolated<AxisTitle::Side>
+						(AxisTitle::Side::upon),
+					.vposition = Anim::Interpolated<AxisTitle::VPosition>
+						(AxisTitle::VPosition::end),
+					.vside = Anim::Interpolated<AxisTitle::VSide>
+						(AxisTitle::VSide::positive),
+					.orientation = Anim::Interpolated<AxisTitle::Orientation>
+						(AxisTitle::Orientation::horizontal)
+				},
+				.label = {
+					{
+						{
+							{
+								.paddingTop = Gfx::Length::Emphemeral(5/12.0),
+								.paddingRight = Gfx::Length::Emphemeral(5/12.0),
+								.paddingBottom = Gfx::Length::Emphemeral(5/12.0),
+								.paddingLeft = Gfx::Length::Emphemeral(5/12.0)
+							},
+							{
+								.fontFamily = ::Anim::String(),
+								.fontStyle = Gfx::Font::Style::normal,
+								.fontWeight = Gfx::Font::Weight::Normal(),
+								.fontSize = Gfx::Length::Emphemeral(12.0/12.0)
+							},
+							{
+								.color = Gfx::Color::Gray(0.6),
+								.textAlign = Anim::Interpolated<Text::TextAlign>
+										(Text::TextAlign::left),
+								.backgroundColor = Gfx::Color(),
+								.numberFormat = ::Text::NumberFormat::prefixed
+							}
+						},
+						.orientation = Anim::Interpolated
+							<OrientedLabel::Orientation>
+							(OrientedLabel::Orientation::horizontal),
+						.angle = 0,
+					},
+					.position = Anim::Interpolated<AxisLabel::Position>
+						(AxisLabel::Position::min_edge),
+					.side = Anim::Interpolated<AxisLabel::Side>
+						(AxisLabel::Side::negative)
+				},
+				.ticks = {
+					.color = Gfx::Color::Gray(0.8),
+					.lineWidth = 1,
+					.length = Gfx::Length::Emphemeral(5.0/12.0),
 					.position = ::Anim::Interpolated<Tick::Position>
 						(Tick::Position::outside)
 				},
@@ -149,86 +263,84 @@ Chart Chart::def()
 		},
 		.legend = {
 			{
-				.paddingTop = 10,
-				.paddingRight = 10,
-				.paddingBottom = 10,
-				.paddingLeft = 30
+				.paddingTop = Gfx::Length::Emphemeral(10.0/12.0),
+				.paddingRight = Gfx::Length::Emphemeral(10.0/12.0),
+				.paddingBottom = Gfx::Length::Emphemeral(10.0/12.0),
+				.paddingLeft = Gfx::Length::Emphemeral(30.0/12.0)
 			},
 			{
 				.backgroundColor = Gfx::Color(),
 				.borderColor = Gfx::Color(),
 				.borderWidth = 0,
 			},
-			.width = 100,
+			.width = Gfx::Length::Emphemeral(150.0/12.0),
+			.maxWidth = Gfx::Length::Relative(0.3),
 			.title = {
 				{
-					.paddingTop = 5,
-					.paddingRight = 5,
-					.paddingBottom = 5,
-					.paddingLeft = 5
+					.paddingTop = Gfx::Length::Emphemeral(5/14.0),
+					.paddingRight = Gfx::Length::Emphemeral(5/14.0),
+					.paddingBottom = Gfx::Length::Emphemeral(5/14.0),
+					.paddingLeft = Gfx::Length::Emphemeral(5/14.0)
 				},
 				{
-					.fontFamily = ::Anim::String("Roboto, sans-serif"),
+					.fontFamily = ::Anim::String(),
 					.fontStyle = Gfx::Font::Style::normal,
 					.fontWeight = Gfx::Font::Weight::Normal(),
-					.fontSize = 14
+					.fontSize = Gfx::Length::Emphemeral(14.0/12.0)
 				},
 				{
-					.color = Gfx::Color::Gray(0.77),
+					.color = Gfx::Color::Gray(0.6),
 					.textAlign = Anim::Interpolated<Text::TextAlign>
 								(Text::TextAlign::left),
 					.backgroundColor = Gfx::Color(),
-					.overflow = Anim::Interpolated<Overflow>(Overflow::visible),
 					.numberFormat = ::Text::NumberFormat::prefixed
 				},
 			},
 			.label = {
 				{
-					.paddingTop = 5,
-					.paddingRight = 5,
-					.paddingBottom = 5,
-					.paddingLeft = 10
+					.paddingTop = Gfx::Length::Emphemeral(5.0/12.0),
+					.paddingRight = Gfx::Length::Emphemeral(5/12.0),
+					.paddingBottom = Gfx::Length::Emphemeral(5/12.0),
+					.paddingLeft = Gfx::Length::Emphemeral(5/12.0)
 				},
 				{
-					.fontFamily = ::Anim::String("Roboto, sans-serif"),
+					.fontFamily = ::Anim::String(),
 					.fontStyle = Gfx::Font::Style::normal,
 					.fontWeight = Gfx::Font::Weight::Normal(),
-					.fontSize = 14
+					.fontSize = Gfx::Length::Emphemeral(12.0/12.0)
 				},
 				{
-					.color = Gfx::Color::Gray(0.45),
+					.color = Gfx::Color::Gray(0.6),
 					.textAlign = Anim::Interpolated<Text::TextAlign>
 								(Text::TextAlign::left),
 					.backgroundColor = Gfx::Color(),
-					.overflow = Anim::Interpolated<Overflow>(Overflow::visible),
 					.numberFormat = ::Text::NumberFormat::prefixed
 				},
 			},
 			.marker = {
 				.type = ::Anim::Interpolated<Legend::Marker::Type>
 					(Legend::Marker::Type::circle),
-				.size = 18
+				.size = Gfx::Length::Emphemeral(18.0/14.0)
 			}
 		},
 		.title = {
 			{
-				.paddingTop = 25,
-				.paddingRight = 10,
-				.paddingBottom = 0,
-				.paddingLeft = 10
+				.paddingTop = Gfx::Length::Emphemeral(25.0/26.0),
+				.paddingRight = Gfx::Length::Emphemeral(10.0/26.0),
+				.paddingBottom = Gfx::Length::Emphemeral(0),
+				.paddingLeft = Gfx::Length::Emphemeral(10.0/26.0)
 			},
 			{
-				.fontFamily = ::Anim::String("Roboto, sans-serif"),
+				.fontFamily = ::Anim::String(),
 				.fontStyle = Gfx::Font::Style::normal,
 				.fontWeight = Gfx::Font::Weight::Normal(),
-				.fontSize = 26
+				.fontSize = Gfx::Length::Emphemeral(26.0/12.0)
 			},
 			{
 				.color = Gfx::Color::RGB(0x494949),
 				.textAlign = Anim::Interpolated<Text::TextAlign>
 								(Text::TextAlign::center),
 				.backgroundColor = Gfx::Color(),
-				.overflow = Anim::Interpolated<Overflow>(Overflow::visible),
 				.numberFormat = ::Text::NumberFormat::prefixed
 			},
 		},

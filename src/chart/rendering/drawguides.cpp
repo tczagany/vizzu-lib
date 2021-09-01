@@ -17,13 +17,14 @@ drawGuides::drawGuides(const DrawingContext &context,
 
 void drawGuides::draw(bool horizontal)
 {
-	const auto &guideStyle = style.plot.axis.guides;
+	auto axisId = horizontal ? Diag::ScaleId::x : Diag::ScaleId::y;
+
+	const auto &guideStyle = style.plot.getAxis(axisId).guides;
 
 	auto baseColor = *guideStyle.color;
 	if (baseColor.alpha == 0) return;
 
 	const auto &axises = diagram.discreteAxises;
-	auto axisId = horizontal ? Diag::Scale::Type::X : Diag::Scale::Type::Y;
 	const auto &axis = axises.at(axisId);
 
 	if (axis.enabled
@@ -64,6 +65,8 @@ void drawGuides::drawGuide(bool horizontal,
 	auto relMax = ident * val;
 
 	canvas.setLineColor(color);
-	painter.drawLine(Geom::Line(relMax, relMax + normal));
+	Geom::Line line(relMax, relMax + normal);
+	if (events.plot.axis.guide->invoke(Events::OnLineDrawParam(line)))
+		painter.drawLine(line);
 }
 

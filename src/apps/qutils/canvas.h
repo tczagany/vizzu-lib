@@ -19,8 +19,7 @@ public:
 	~BaseCanvas() override;
 	void init(QPaintDevice *device);
 
-	Geom::Size textBoundary(const std::string &text,
-	    double angle) override;
+	Geom::Size textBoundary(const std::string &text) override;
 
 	std::shared_ptr<Gfx::ICanvas>
 	createCanvas(int width, int height) override;
@@ -28,8 +27,8 @@ public:
 	Gfx::ICanvas &getCanvas() override { return *this; }
 
 	Geom::Rect getClipRect() const override;
-	void setClipRect(const Geom::Rect &rect, bool clear) override;
-	void setClipPolygon(bool clear) override;
+	void setClipRect(const Geom::Rect &rect) override;
+	void setClipPolygon() override;
 	void setBrushColor(const Gfx::Color &color) override;
 	void setLineColor(const Gfx::Color &color) override;
 	void setLineWidth(double width) override;
@@ -47,8 +46,7 @@ public:
 	void line(const Geom::Line &line) override;
 
 	void text(const Geom::Rect &rect,
-			  const std::string &text,
-			  double angle) override;
+			  const std::string &text) override;
 
 	void setBrushGradient(const Geom::Line &line,
 						  const Gfx::ColorGradient &gradient) override;
@@ -66,8 +64,9 @@ public:
 	void frameBegin() override {}
 	void frameEnd() override {}
 
-	void pushTransform(const Geom::AffineTransform &transform) override;
-	void popTransform() override;
+	void transform(const Geom::AffineTransform &transform) override;
+	void save() override;
+	void restore() override;
 
 protected:
 	QPainter painter;

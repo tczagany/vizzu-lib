@@ -9,8 +9,8 @@ namespace Vizzu::Diag
 
 Geom::Point Axises::origo() const {
 	return Geom::Point(
-		at(Scale::Type::X).origo(),
-		at(Scale::Y).origo());
+		at(ScaleId::x).origo(),
+		at(ScaleId::y).origo());
 }
 
 Axis::Axis()
@@ -59,9 +59,9 @@ Axis interpolate(const Axis &op0, const Axis &op1, double factor)
 
 	res.range = Math::interpolate(range0, range1, factor);
 	res.step = Math::interpolate(step0, step1, factor);
-	//todo: interpolate unit & title
+	//todo: interpolate unit
 	res.unit = op1.unit;
-	res.title = op1.title;
+	res.title = Math::interpolate(op0.title, op1.title, factor);
 
 	return res;
 }
@@ -71,12 +71,12 @@ DiscreteAxis::DiscreteAxis()
 	enabled = false;
 }
 
-void DiscreteAxis::add(const Data::MultiDim::SliceIndex &index,
+bool DiscreteAxis::add(const Data::MultiDim::SliceIndex &index,
 					   double value,
 					   Math::Range<double> &range,
 					   double enabled)
 {
-	if (enabled <= 0) return;
+	if (enabled <= 0) return false;
 
 	this->enabled = true;
 
@@ -85,9 +85,11 @@ void DiscreteAxis::add(const Data::MultiDim::SliceIndex &index,
 	{
 		values.insert({index,
 		    Item{range, value, Gfx::Color(), nullptr, enabled}});
+		return true;
 	} else {
 		it->second.range.include(range);
 		it->second.weight = std::max(it->second.weight, enabled);
+		return false;
 	}
 }
 
@@ -116,7 +118,7 @@ void DiscreteAxis::setLabels(const Data::DataCube &data, const Data::DataTable &
 DiscreteAxis interpolate(const DiscreteAxis &op0, const DiscreteAxis &op1, double factor)
 {
 	DiscreteAxis res;
-	res.title = op1.title;
+	res.title = Math::interpolate(op0.title, op1.title, factor);
 
 	DiscreteAxis::Values::const_iterator it;
 	for (it = op0.values.cbegin(); it != op0.values.cend(); ++it)

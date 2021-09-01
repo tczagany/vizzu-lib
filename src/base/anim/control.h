@@ -25,6 +25,7 @@ public:
 	void seekTime(Duration pos);
 	void pause() { playState = PlayState::paused; }
 	void play() { playState = PlayState::running; }
+	void setPlayState(PlayState state) { playState = state; }
 	void stop();
 
 	void reverse() {
@@ -34,6 +35,7 @@ public:
 	}
 
 	Duration getPosition() const { return position; };
+	double getProgress() const;
 
 	bool isRunning() const {
 		return playState == PlayState::running;
@@ -43,7 +45,9 @@ public:
 		return direction == Direction::reverse;
 	};
 
+	bool atStartPosition() const;
 	bool atEndPosition() const;
+	bool atIntermediatePosition() const;
 
 protected:
 	bool changed;

@@ -18,6 +18,7 @@
 #include "align.h"
 #include "scales.h"
 #include "shapetype.h"
+#include "autoparam.h"
 
 namespace Vizzu
 {
@@ -30,19 +31,21 @@ class Options
 {
 public:
 	typedef ::Anim::Interpolated<std::optional<std::string>> Title;
-	typedef ::Anim::Interpolated<std::optional<Scale::Type>> Legend;
+	typedef ::Anim::Interpolated<Base::AutoParam<ScaleId>> Legend;
 
 	Options();
 
 	const Scales &getScales() const { return scales; }
 	Scales &getScales() { return scales; }
 
-	Scale::Type mainAxisType() const {
-		return horizontal.get() ? Scale::X : Scale::Y;
+	void reset();
+
+	ScaleId mainAxisType() const {
+		return horizontal.get() ? ScaleId::x : ScaleId::y;
 	}
 
-	Scale::Type subAxisType() const {
-		return horizontal.get() ? Scale::Y : Scale::X;
+	ScaleId subAxisType() const {
+		return horizontal.get() ? ScaleId::y : ScaleId::x;
 	}
 
 	const Scales::Id mainAxisId(Scales::Index scaleIndex = Scales::Index{0}) const {
@@ -62,7 +65,7 @@ public:
 	}
 
 	const Scale *subAxisOf(Scales::Id id) const;
-	Scale::Type stackAxisType() const;
+	ScaleId stackAxisType() const;
 
 	Util::ReadWrite<Title> title;
 	Util::ReadWrite<Math::FuzzyBool> polar;
@@ -80,8 +83,8 @@ public:
 
 	bool operator==(const Options& other) const;
 
-	Scale::Type getHorizontalScale() const;
-	Scale::Type getVeritalScale() const;
+	ScaleId getHorizontalScale() const;
+	ScaleId getVeritalScale() const;
 
 	const Scales::Id horizontalAxisId(Scales::Index scaleIndex = Scales::Index{0}) const {
 		return Scales::Id{ getHorizontalScale(), scaleIndex };
@@ -101,9 +104,13 @@ public:
 
 	bool isShapeValid(const ShapeType::Type &) const;
 
+	void setAutoParameters();
+
 private:
 
 	Scales scales;
+
+	std::optional<ScaleId> getAutoLegend();
 };
 
 typedef std::shared_ptr<Options> DiagramOptionsPtr;

@@ -2,6 +2,8 @@
 
 #include "base/math/renard.h"
 #include "base/text/smartstring.h"
+#include "chart/rendering/drawlabel.h"
+#include "chart/rendering/draworientedlabel.h"
 
 using namespace Geom;
 using namespace Vizzu;
@@ -21,8 +23,12 @@ drawInterlacing::drawInterlacing(const DrawingContext &context,
 
 void drawInterlacing::draw(bool horizontal, bool text)
 {
-	const auto &axis = diagram.axises.at(
-		horizontal ? Diag::Scale::Type::Y : Diag::Scale::Type::X);
+	auto axisIndex = horizontal ? Diag::ScaleId::y : Diag::ScaleId::x;
+
+	if ((*style.plot.getAxis(axisIndex).interlacing.color).alpha <= 0.0)
+		return;
+
+	const auto &axis = diagram.axises.at(axisIndex);
 
 	auto stepHigh = Math::Renard::R5().ceil(axis.step);
 
@@ -50,24 +56,29 @@ void drawInterlacing::draw(bool horizontal,
 {
 	auto &enabled = horizontal ? guides.x : guides.y;
 
-	const auto &axis = diagram.axises.at(
-	    horizontal ? Diag::Scale::Type::Y : Diag::Scale::Type::X);
+	auto axisIndex = horizontal ? Diag::ScaleId::y : Diag::ScaleId::x;
+
+	auto &axisStyle = style.plot.getAxis(axisIndex);
+
+	const auto &axis = diagram.axises.at(axisIndex);
+
+	const auto origo = diagram.axises.origo();
 
 	if ((double)(enabled.stripes || enabled.axisSticks) > 0)
 	{
 		auto stripeIntesity = weight * (double)enabled.stripes;
-		auto stripeColor = *style.plot.axis.interlacing.color
+		auto stripeColor = *axisStyle.interlacing.color
 		                   * stripeIntesity;
 
 		auto stickIntensity = weight * (double)enabled.axisSticks;
 
 		auto textAlpha =
 		    weight * (double)(enabled.stripes || enabled.axisSticks);
-		auto textColor = *style.plot.axis.label.color * textAlpha;
+		auto textColor = *axisStyle.label.color * textAlpha;
 
 		if (text) {
 			canvas.setTextColor(textColor);
-			canvas.setFont(Gfx::Font(style.plot.axis.label));
+			canvas.setFont(Gfx::Font(axisStyle.label));
 		}
 		else
 		{
@@ -102,7 +113,12 @@ void drawInterlacing::draw(bool horizontal,
 			if (!topUnderflow)
 			{
 				std::array<Geom::Point, 4> points =
-				{	P(clippedBottom, 0.0), P(clippedBottom, 1.0), P(top, 1.0), P(top, 0.0) };
+				{
+					P(clippedBottom, 0.0), 
+					P(clippedBottom, 1.0), 
+					P(top, 1.0), 
+					P(top, 0.0) 
+				};
 
 				if (horizontal) for(auto &p: points) p = p.flip();
 
@@ -111,10 +127,12 @@ void drawInterlacing::draw(bool horizontal,
 					if(!clipBottom)
 					{
 						auto value = (i * 2 + 1) * stepSize;
-						auto stickPos = coordSys.convert(points[0]);
+						auto stickPos = points[0].comp(!horizontal)
+							+ origo.comp(horizontal);
 
 						if (textColor.alpha > 0)
-							drawDataLabel(horizontal, stickPos, value, axis.unit);
+							drawDataLabel(horizontal, stickPos, value, 
+								axis.unit, textColor);
 
 						if (stickIntensity > 0)
 							drawSticks(stickIntensity, horizontal, stickPos);
@@ -122,10 +140,12 @@ void drawInterlacing::draw(bool horizontal,
 					if(!clipTop)
 					{
 						auto value = (i * 2 + 2) * stepSize;
-						auto stickPos = coordSys.convert(points[3]);
+						auto stickPos = points[3].comp(!horizontal)
+							+ origo.comp(horizontal);
 
 						if (textColor.alpha > 0)
-							drawDataLabel(horizontal, stickPos, value, axis.unit);
+							drawDataLabel(horizontal, stickPos, value, 
+								axis.unit, textColor);
 
 						if (stickIntensity > 0)
 							drawSticks(stickIntensity, horizontal, stickPos);
@@ -135,7 +155,12 @@ void drawInterlacing::draw(bool horizontal,
 				{
 					painter.setPolygonToCircleFactor(0);
 					painter.setPolygonStraightFactor(0);
-					painter.drawPolygon(points);
+					auto rect = Geom::Rect::Boundary(points);
+					if(events.plot.axis.interlacing
+						->invoke(Events::OnRectDrawParam(rect)))
+					{
+						painter.drawPolygon(points);
+					}
 				}
 			}
 		}
@@ -145,46 +170,67 @@ void drawInterlacing::draw(bool horizontal,
 void drawInterlacing::drawDataLabel(bool horizontal,
     const Geom::Point &stickPos,
     double value,
-    const std::string &unit)
+    const std::string &unit,
+	const Gfx::Color &textColor
+)
 {
-	auto &labelStyle = style.plot.axis.label;
+	auto axisIndex = horizontal ? Diag::ScaleId::y : Diag::ScaleId::x;
+	auto &labelStyle = style.plot.getAxis(axisIndex).label;
 
 	auto str = Text::SmartString::fromNumber(value,
 	    *labelStyle.numberFormat);
 
-	if (*labelStyle.numberFormat != Text::NumberFormat::prefixed)
-		str += " ";
-
-	str += unit;
-
-	auto neededSize = canvas.textBoundary(str);
-
-	auto padding = (GUI::Margin)labelStyle;
-
-	auto relCenterPos = coordSys.justRotate(Geom::Point::Ident(horizontal))
-						* ((neededSize + padding.getSpace()) / 2).flipX();
-
-	auto relTextPos = neededSize * -1 / 2;
-
-	auto textPos = stickPos + relCenterPos + relTextPos;
-
-	if (!labelStyle.backgroundColor->isTransparent())
+	if (!unit.empty())
 	{
-		canvas.setBrushColor(*labelStyle.backgroundColor);
-		canvas.setLineColor(*labelStyle.backgroundColor);
-		canvas.rectangle(Geom::Rect(textPos, neededSize));
+		if (*labelStyle.numberFormat != Text::NumberFormat::prefixed)
+			str += " ";
+
+		str += unit;
 	}
-	canvas.text(Geom::Rect(textPos, neededSize), str, 0);
+
+	auto normal = Geom::Point::Ident(horizontal);
+
+	typedef Styles::AxisLabel::Position Pos;
+	labelStyle.position->visit(
+	[&](const auto &position)
+	{
+		Geom::Point refPos = stickPos;
+
+		if (position.value == Pos::min_edge) 
+			refPos[horizontal ? 0 : 1] = 0.0;
+		
+		else if (position.value == Pos::max_edge) 
+			refPos[horizontal ? 0 : 1] = 1.0;
+		
+		double under = labelStyle.side->factor
+			(Styles::AxisLabel::Side::negative);
+
+		auto direction = normal * (1 - 2 * under);
+
+		auto posDir = coordSys.convertDirectionAt(
+			Geom::Line(refPos, refPos + direction));
+
+		drawOrientedLabel(*this, str, posDir, labelStyle, 0, 
+			textColor * position.weight, 
+			*labelStyle.backgroundColor);
+	});
 }
 
 void drawInterlacing::drawSticks(double stickIntensity,
     bool horizontal,
     const Geom::Point &stickPos)
 {
-	const auto &tickStyle = style.plot.axis.ticks;
+	auto axisIndex = horizontal ? Diag::ScaleId::y : Diag::ScaleId::x;
+	auto &axisStyle = style.plot.getAxis(axisIndex);
+	const auto &tickStyle = axisStyle.ticks;
+
+	auto tickLength = tickStyle.length->get(
+		coordSys.getRect().size.getCoord(horizontal),
+		axisStyle.label.calculatedSize()
+	);
 
 	if (tickStyle.color->isTransparent()
-		|| *tickStyle.length == 0
+		|| tickLength == 0
 		|| *tickStyle.lineWidth == 0)
 		return;
 
@@ -193,30 +239,33 @@ void drawInterlacing::drawSticks(double stickIntensity,
 	canvas.setLineColor(stickColor);
 	canvas.setBrushColor(stickColor);
 
-	auto dP = horizontal ? Geom::Point::X(-1) : Geom::Point::Y(-1);
-	dP = coordSys.convertAt(stickPos, dP);
-	dP = dP.normalized() * *tickStyle.length;
+	auto direction = horizontal ? Geom::Point::X(-1) : Geom::Point::Y(-1);
+	
+	auto tickLine = coordSys.convertDirectionAt(
+		Geom::Line(stickPos, stickPos + direction));
+	
+	tickLine = tickLine.segment(0, tickLength);
 
 	if (*tickStyle.lineWidth > 0)
 		canvas.setLineWidth(*tickStyle.lineWidth);
 
-	auto tickLine = tickStyle.position->combine<Geom::Line>(
+	typedef Styles::Tick::Position Pos;
+	tickLine = tickStyle.position->combine<Geom::Line>(
 		[&](const auto &position)
 		{
-			switch (position)
+			switch (position) 
 			{
-			default:
-			case Styles::Tick::Position::outside:
-				return Geom::Line(stickPos, stickPos + dP);
-
-			case Styles::Tick::Position::inside:
-				return Geom::Line(stickPos -dP, stickPos);
-
-			case Styles::Tick::Position::center:
-				return Geom::Line(stickPos - dP * 0.5, stickPos + dP * 0.5);
+			default: 
+			case Pos::outside: return tickLine;
+			case Pos::inside: return tickLine.segment(-1,0);
+			case Pos::center: return tickLine.segment(-0.5,0.5);
 			}
 		});
 
-	canvas.line(tickLine);
+	if(events.plot.axis.tick
+		->invoke(Events::OnLineDrawParam(tickLine)))
+	{
+		canvas.line(tickLine);
+	}
 	if (*tickStyle.lineWidth > 1) canvas.setLineWidth(0);
 }

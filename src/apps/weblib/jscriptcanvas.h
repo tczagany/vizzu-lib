@@ -2,6 +2,7 @@
 #define OUTPUT_CANVAS_JSCRIPT_H
 
 #include <functional>
+#include <optional>
 
 #include "base/gfx/canvas.h"
 #include "chart/rendering/painter/adaptivepainter.h"
@@ -19,12 +20,11 @@ public:
 
 	Gfx::ICanvasPtr createCanvas(int width, int height) override;
 
-	Geom::Size textBoundary(const std::string &text,
-							double angle = 0) override;
+	Geom::Size textBoundary(const std::string &text) override;
 
 	Geom::Rect getClipRect() const override;
-	void setClipRect(const Geom::Rect &rect, bool clear) override;
-	void setClipPolygon(bool clear) override;
+	void setClipRect(const Geom::Rect &rect) override;
+	void setClipPolygon() override;
 	void setBrushColor(const Gfx::Color &color) override;
 	void setLineColor(const Gfx::Color &color) override;
 	void setLineWidth(double width) override;
@@ -43,8 +43,7 @@ public:
 	void line(const Geom::Line &line) override;
 
 	void text(const Geom::Rect &rect,
-			  const std::string &text,
-			  double angle) override;
+			  const std::string &text) override;
 
 	void setBrushGradient(const Geom::Line &line,
 						  const Gfx::ColorGradient &gradient) override;
@@ -61,15 +60,18 @@ public:
 	void frameBegin() override;
 	void frameEnd() override;
 
-	void pushTransform(const Geom::AffineTransform &transform) override;
-	void popTransform() override;
+	void transform(const Geom::AffineTransform &transform) override;
+	void save() override;
+	void restore() override;
 
 private:
-	Gfx::Font font;
-	Gfx::Color brushColor;
-	Gfx::Color lineColor;
-	double lineWidth;
-	Geom::Rect clipRect;
+	void resetStates();
+	std::string domId;
+	std::optional<Gfx::Font> font;
+	std::optional<Gfx::Color> brushColor;
+	std::optional<Gfx::Color> lineColor;
+	std::optional<double> lineWidth;
+	std::optional<Geom::Rect> clipRect;
 };
 
 template<class Canvas>

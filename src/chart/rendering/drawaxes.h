@@ -21,11 +21,15 @@ public:
 private:
 	const Guides &guides;
 
-	Geom::Line getAxis(Diag::Scale::Type axisIndex) const;
-	void drawAxis(Diag::Scale::Type axisIndex,
-	    const Gfx::Color &lineBaseColor);
-	void drawTitle(Diag::Scale::Type axisIndex);
+	Geom::Line getAxis(Diag::ScaleId axisIndex) const;
+	Geom::Point getTitleBasePos(Diag::ScaleId axisIndex) const;
+	Geom::Point getTitleOffset(Diag::ScaleId axisIndex) const;
+	void drawAxis(Diag::ScaleId axisIndex);
+	void drawTitle(Diag::ScaleId axisIndex);
 	void drawDiscreteLabels(bool horizontal);
+	void drawDiscreteLabel(bool horizontal, 
+		const Geom::Point &origo,
+		Diag::DiscreteAxis::Values::const_iterator it);
 };
 
 }

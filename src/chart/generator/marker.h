@@ -1,8 +1,6 @@
 #ifndef CHART_GENERATOR_MARKER_H
 #define CHART_GENERATOR_MARKER_H
 
-#include <variant>
-
 #include "base/anim/interpolated.h"
 #include "base/geom/circle.h"
 #include "base/geom/point.h"
@@ -89,8 +87,6 @@ public:
 	Geom::Rect toRectangle() const;
 	void fromRectangle(const Geom::Rect &rect);
 
-	std::string getHint(const Data::DataCube &data, const Data::DataTable &table) const;
-
 	Math::Range<double> getSizeBy(bool horizontal) const;
 	void setSizeBy(bool horizontal, const Math::Range<double> range);
 
@@ -98,7 +94,7 @@ public:
 
 private:
 	double
-	getValueForScale(const Scales::Level &scales, Scale::Type type,
+	getValueForScale(const Scales::Level &scales, ScaleId type,
 					 const Data::DataCube &data, ScalesStats &stats,
 					 const Scale *subScale = nullptr,
 					 bool inhibitStack = false) const;

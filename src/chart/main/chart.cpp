@@ -16,36 +16,45 @@ Chart::Chart() :
     stylesheet(Styles::Chart::def()),
 	events(*this)
 {
+	computedStyles = stylesheet.getDefaultParams();
 	stylesheet.setActiveParams(actStyles);
-	getEvents().createEvents();
 	nextOptions = std::make_shared<Diag::Options>();
 
 	animator->onDraw = [&](Diag::DiagramPtr actDiagram)
 	{
-		events.invoke(events.update);
 		this->actDiagram = std::move(actDiagram);
 		if (onChanged) onChanged();
 	};
 
-	animator->init(diagram(nextOptions));
+	animator->onProgress = [&]() {
+		events.update->invoke(Events::OnUpdateParam(*animator));
+	};
 }
 
 void Chart::setBoundRect(const Geom::Rect &rect, Gfx::ICanvas &info)
 {
 	if (actDiagram) {
+		actDiagram->getStyle().setup();
 		layout.setBoundary(rect, *actDiagram, info);
+	} else {
+		layout.setBoundary(rect, info);
 	}
 }
 
 void Chart::animate(std::function<void()> onComplete)
 {
-	animator->animate(diagram(nextOptions), onComplete);
+	auto f = [=](Diag::DiagramPtr diagram) {
+		actDiagram = diagram;
+		onComplete();
+	};
+	animator->animate(diagram(nextOptions), std::move(nextAnimOptions), f);
+	nextAnimOptions = Anim::Options();
 	nextOptions = std::make_shared<Diag::Options>(*nextOptions);
 }
 
-Diag::Descriptor Chart::getDescriptor()
+Diag::Config Chart::getConfig()
 {
-    return Diag::Descriptor(getSetter());
+    return Diag::Config(getSetter());
 }
 
 Diag::OptionsSetterPtr Chart::getSetter()
@@ -61,7 +70,27 @@ void Chart::draw(Gfx::ICanvas &canvas) const
 	{
 		Draw::drawBackground(layout.boundary,
 		    canvas,
-		    actDiagram->getStyle());
+		    actDiagram->getStyle(),
+			events.draw.background);
+
+		Draw::drawDiagram(layout.plot,
+		    *actDiagram,
+		    canvas,
+		    Draw::DrawOptions(false, false),
+		    actDiagram->getStyle(),
+			events.draw);
+
+		actDiagram->getOptions()->legend.get().visit(
+		[&](const auto &legend)
+		{
+			if (legend.value)
+				Draw::drawLegend(layout.legend,
+					*actDiagram,
+					events.draw.legend,
+					canvas,
+					*legend.value,
+					legend.weight);
+		});
 
 		actDiagram->getOptions()->title.get().visit(
 		[&](const auto &title)
@@ -70,46 +99,63 @@ void Chart::draw(Gfx::ICanvas &canvas) const
 				Draw::drawLabel(layout.title,
 					*title.value,
 					actDiagram->getStyle().title,
-					canvas, true, title.weight);
-		});
-
-		Draw::drawDiagram(layout.plot,
-		    *actDiagram,
-		    canvas,
-		    Draw::DrawOptions(false, false),
-		    actDiagram->getStyle());
-
-		actDiagram->getOptions()->legend.get().visit(
-		[&](const auto &legend)
-		{
-			if (legend.value)
-				Draw::drawLegend(layout.legend,
-					*actDiagram,
-					canvas,
-					*legend.value,
-					legend.weight);
+					events.draw.title,
+					canvas, true, 
+					std::max(title.weight * 2 - 1, 0.0));
 		});
 	}
 
-	Draw::Logo(canvas).draw(
-		layout.boundary.topRight() - Geom::Point(55, 15),
-		40, false,
-		Gfx::Color::Gray(0.85));
+	if (events.draw.logo->invoke())
+	{
+		auto em = Gfx::Length::Emphemeral(1.0).get(
+			layout.boundary.size.minSize(), 
+			Styles::Sheet::baseFontSize(layout.boundary.size, false));
+
+		auto logoWidth = 40 * em / 12.13526042;
+		auto logoPad = 0.375 * logoWidth;
+
+		Draw::Logo(canvas).draw(
+			layout.boundary.topRight() 
+				- Geom::Point(logoPad + logoWidth, logoPad),
+			logoWidth, false, Gfx::Color::Gray(0.85));
+	}
 }
 
 Diag::DiagramPtr Chart::diagram(
-    Diag::DiagramOptionsPtr options) const
+    Diag::DiagramOptionsPtr options)
 {
+	computedStyles = stylesheet.getFullParams(
+		options, 
+		layout.boundary.size);
+	
 	return std::make_shared<Diag::Diagram>(table,
 	    options,
-	    stylesheet.getFullParams());
+	    computedStyles);
+}
+
+Draw::CoordinateSystem Chart::getCoordSystem() const
+{
+	const auto &plotArea = layout.plotArea;
+
+	if (actDiagram)
+	{
+		const auto &options = *actDiagram->getOptions();
+
+		return Draw::CoordinateSystem(plotArea,
+			options.angle.get(),
+			options.polar.get(),
+			actDiagram->keepAspectRatio);
+	}
+	return Draw::CoordinateSystem(plotArea, 0.0, 
+		Math::FuzzyBool(), Math::FuzzyBool());
 }
 
 const Diag::Marker *Chart::markerAt(const Geom::Point &point) const
 {
-	if (animator->isRunning()) return nullptr;
+	if (animator->atIntermediatePosition())
+		return nullptr;
 
-	if (actDiagram) for (const auto &marker : actDiagram->getMarkers())
+	if (actDiagram) 
 	{
 		const auto &plotArea = layout.plotArea;
 		const auto &options = *actDiagram->getOptions();
@@ -119,13 +165,19 @@ const Diag::Marker *Chart::markerAt(const Geom::Point &point) const
 			options.polar.get(),
 			actDiagram->keepAspectRatio);
 
-		auto drawItem = Draw::DrawItem::create(marker,
-			options,
-			actDiagram->getStyle(),
-			actDiagram->getMarkers());
+		auto originalPos = coordSys.getOriginal(point);
 
-		if (drawItem->bounds(coordSys.getOriginal(point)))
-			return &marker;
+		for (const auto &marker : actDiagram->getMarkers())
+		{
+			auto drawItem = Draw::DrawItem::create(marker,
+				options,
+				actDiagram->getStyle(),
+				coordSys,
+				actDiagram->getMarkers());
+
+			if (drawItem->bounds(originalPos))
+				return &marker;
+		}
 	}
 	return nullptr;
 }

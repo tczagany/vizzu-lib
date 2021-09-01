@@ -35,6 +35,26 @@ struct Line
 	Geom::Line operator+(const Geom::Line &other) const {
 		return Geom::Line(begin + other.begin, end + other.end);
 	}
+
+	void shift(const Geom::Point &offset) {
+		begin = begin + offset;
+		end = end + offset;
+	}
+
+	Geom::Point at(double t) const {
+		return begin + (end - begin) * t;
+	}
+
+	Geom::Line segment(double t0, double t1) const {
+		return Geom::Line(at(t0), at(t1));
+	}
+
+	explicit operator std::string() const {
+		return "{"
+			"\"begin\":" + (std::string)begin + ","
+			"\"end\":" + (std::string)end + 
+		"}";
+	}
 };
 
 }

@@ -2,17 +2,17 @@
 #define GUI_MAINWIDGET
 
 #include "screeninfo.h"
-#include "transformerwidget.h"
+#include "widget.h"
 
 namespace GUI
 {
 
-class MainWidget : public TransformerWidget
+class MainWidget : public ContainerWidget
 {
 public:
-	typedef TransformerWidget BaseWidget;
+	typedef ContainerWidget BaseWidget;
 
-	MainWidget(const GUI::ScreenInfo &screenInfo);
+	MainWidget();
 
 	void onUpdateSize(Gfx::ICanvas &info, Geom::Size &size) override;
 	DragObjectPtr onMouseDown(const Geom::Point &pos) override;

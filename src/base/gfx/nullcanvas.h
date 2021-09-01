@@ -9,14 +9,14 @@ namespace Gfx
 struct NullCanvas : public ICanvas
 {
 	ICanvasPtr createCanvas(int, int) override;
-	Geom::Size textBoundary(const std::string &, double) override
+	Geom::Size textBoundary(const std::string &) override
 	{
 		return Geom::Size();
 	}
 
 	Geom::Rect getClipRect() const override { return Geom::Rect(); }
-	void setClipRect(const Geom::Rect &, bool) override {}
-	void setClipPolygon(bool) override {}
+	void setClipRect(const Geom::Rect &) override {}
+	void setClipPolygon() override {}
 	void setBrushColor(const Color &) override {}
 	void setLineColor(const Color &) override {}
 	void setTextColor(const Color &) override {}
@@ -32,7 +32,7 @@ struct NullCanvas : public ICanvas
 	void rectangle(const Geom::Rect &) override {}
 	void circle(const Geom::Circle &) override {}
 	void line(const Geom::Line &) override {}
-	void text(const Geom::Rect &, const std::string &, double) override {}
+	void text(const Geom::Rect &, const std::string &) override {}
 	void setBrushGradient(const Geom::Line &, const ColorGradient &) override {}
 	int loadSvgImage(const Gfx::Svg &) override { return 0; }
 	int loadPixMapImage(const Gfx::PixMapView &) override { return 0; }
@@ -43,8 +43,9 @@ struct NullCanvas : public ICanvas
 	void frameBegin() override {}
 	void frameEnd() override {}
 
-	void pushTransform(const Geom::AffineTransform&) override {}
-	void popTransform() override {}
+	void transform(const Geom::AffineTransform&) override {}
+	void save() override {}
+	void restore() override {}
 };
 
 }

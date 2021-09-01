@@ -13,6 +13,7 @@ namespace Vizzu::Diag
 {
 
 Diagram::Diagram(DiagramOptionsPtr options, const Diagram &other) :
+	dataTable(other.getTable()),
 	options(std::move(options))
 {
 	anySelected = other.anySelected;
@@ -23,14 +24,21 @@ Diagram::Diagram(DiagramOptionsPtr options, const Diagram &other) :
 	keepAspectRatio = other.keepAspectRatio;
 }
 
-Diagram::Diagram(const Data::DataTable &dataTable, DiagramOptionsPtr opts, Styles::Chart style)
-	: options(std::move(opts)),
+Diagram::Diagram(
+	const Data::DataTable &dataTable, 
+	DiagramOptionsPtr opts, 
+	Styles::Chart style,
+	bool setAutoParams)
+	: dataTable(dataTable),
+	  options(std::move(opts)),
 	  style(std::move(style)),
 	  dataCube(dataTable, options->getScales().getDataCubeOptions(),
 						  options->dataFilter.get(),
 						  options->getScales().maxScaleSize()),
 	  stats(options->getScales(), dataCube)
 {
+	if (setAutoParams) options->setAutoParameters();
+
 	anySelected = false;
 	anyAxisSet = options->getScales().anyAxisSet();
 
@@ -159,24 +167,29 @@ void Diagram::normalizeXY()
 	boundRect.setVSize(yrange.getValue(boundRect.vSize()));
 
 	for (auto &marker: markers)
-		marker.fromRectangle(
-			boundRect.normalize(marker.toRectangle())
-					);
+	{
+		if (!boundRect.contains(marker.position))
+			marker.enabled = false;
 
-	stats.scales[Scale::Type::X].range = boundRect.hSize();
-	stats.scales[Scale::Type::Y].range = boundRect.vSize();
+		auto rect = marker.toRectangle();
+		auto newRect = boundRect.normalize(rect);
+		marker.fromRectangle(newRect);
+	}
+
+	stats.scales[ScaleId::x].range = boundRect.hSize();
+	stats.scales[ScaleId::y].range = boundRect.vSize();
 }
 
 void Diagram::calcAxises(const Data::DataTable &dataTable)
 {
-	for (auto i = 0u; i < Scale::Type::id_size; i++)
+	for (auto i = 0u; i < ScaleId::EnumInfo::count(); i++)
 	{
-		auto id = Scale::Type(i);
+		auto id = ScaleId(i);
 		axises.at(id) = calcAxis(id, dataTable);
 	}
 }
 
-Axis Diagram::calcAxis(Scale::Type type, const Data::DataTable &dataTable)
+Axis Diagram::calcAxis(ScaleId type, const Data::DataTable &dataTable)
 {
 	const auto *scale = options->getScales().getScales(Scales::Index{0})[type];
 	if (!scale->isEmpty() && !scale->isPseudoDiscrete())
@@ -200,11 +213,11 @@ Axis Diagram::calcAxis(Scale::Type type, const Data::DataTable &dataTable)
 
 void Diagram::calcDiscreteAxises(const Data::DataTable &table)
 {
-	for (auto i = 0u; i < Scale::Type::id_size; i++)
-		calcDiscreteAxis(Scale::Type(i), table);
+	for (auto i = 0u; i < ScaleId::EnumInfo::count(); i++)
+		calcDiscreteAxis(ScaleId(i), table);
 }
 
-void Diagram::calcDiscreteAxis(Scale::Type type,
+void Diagram::calcDiscreteAxis(ScaleId type,
     const Data::DataTable &table)
 {
 	auto &axis = discreteAxises.at(type);
@@ -216,12 +229,12 @@ void Diagram::calcDiscreteAxis(Scale::Type type,
 
 	axis.title = scale.title.get();
 
-	if (type == Scale::Type::X || type == Scale::Type::Y)
+	if (type == ScaleId::x || type == ScaleId::y)
 	{
 		for (auto marker : markers)
 		{
 			auto &id =
-			    (type == Scale::Type::X) == options->horizontal.get()
+			    (type == ScaleId::x) == options->horizontal.get()
 			    ? marker.mainId : marker.subId;
 
 			auto &slice = id.itemSliceIndex;
@@ -230,7 +243,7 @@ void Diagram::calcDiscreteAxis(Scale::Type type,
 			    && dim == floor(dim))
 			{
 				auto index = slice[dim];
-				auto range = marker.getSizeBy(type == Scale::Type::X);
+				auto range = marker.getSizeBy(type == ScaleId::x);
 				axis.add(index, id.itemId, range, (double)marker.enabled);
 			}
 		}
@@ -249,8 +262,8 @@ void Diagram::calcDiscreteAxis(Scale::Type type,
 			{
 				auto index = sliceIndex[dim];
 				auto range = Math::Range<double>(count, count);
-				axis.add(index, i, range, true);
-				count++;
+				auto inserted = axis.add(index, i, range, true);
+				if (inserted) count++;
 			}
 		}
 	}
@@ -294,6 +307,9 @@ void Diagram::addSeparation()
 {
 	if ((bool)options->splitted.get())
 	{
+		auto align = options->alignType.get() == Base::Align::None
+			? Base::Align::Min : options->alignType.get();
+
 		std::vector<Math::Range<double>> ranges(mainBuckets.size(),
 												Math::Range(0.0,0.0));
 		std::vector<bool> anyEnabled(mainBuckets.size(), false);
@@ -327,7 +343,7 @@ void Diagram::addSeparation()
 				auto &marker = markers[itemIt.second];
 				auto size = marker.getSizeBy(!(bool)options->horizontal.get());
 
-				Base::Align aligner(options->alignType.get(), ranges[i]);
+				Base::Align aligner(align, ranges[i]);
 				auto newSize = aligner.getAligned(size);
 
 				marker.setSizeBy(!(bool)options->horizontal.get(), newSize);
@@ -347,7 +363,7 @@ void Diagram::normalizeSizes()
 		for (auto &marker : markers) if (marker.enabled)
 			size.include(marker.sizeFactor);
 
-		auto sizeRange = options->getScales().at(Scale::Type::Size).range.get();
+		auto sizeRange = options->getScales().at(ScaleId::size).range.get();
 		size = sizeRange.getValue(size);
 
 		for (auto &marker : markers)
@@ -370,10 +386,10 @@ void Diagram::normalizeColors()
 		lightness.include(marker.colorBuilder.lightness);
 	}
 
-	auto colorRange = options->getScales().at(Scale::Type::Color).range.get();
+	auto colorRange = options->getScales().at(ScaleId::color).range.get();
 	color = colorRange.getValue(color);
 
-	auto lightnessRange = options->getScales().at(Scale::Type::Lightness).range.get();
+	auto lightnessRange = options->getScales().at(ScaleId::lightness).range.get();
 	lightness = lightnessRange.getValue(lightness);
 
 	for (auto &marker : markers)
@@ -388,7 +404,7 @@ void Diagram::normalizeColors()
 		marker.color = marker.colorBuilder.render();
 	}
 
-	for (auto &value : discreteAxises.at(Scale::Type::Color))
+	for (auto &value : discreteAxises.at(ScaleId::color))
 	{
 		ColorBuilder builder(style.data.lightnessRange(),
 		    *style.data.colorPalette, (int)value.second.value, 0.5);
@@ -396,7 +412,7 @@ void Diagram::normalizeColors()
 		value.second.color = builder.render();
 	}
 
-	for (auto &value : discreteAxises.at(Scale::Type::Lightness))
+	for (auto &value : discreteAxises.at(ScaleId::lightness))
 	{
 		value.second.value = lightness.rescale(value.second.value);
 

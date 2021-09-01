@@ -16,9 +16,9 @@ struct CanvasRuntime : public ElapsedTime<CanvasRuntime> {
 #endif
 
 extern "C" {
-    extern void canvas_textBoundary(const char*, double, double*, double*);
-    extern void canvas_setClipRect(double, double, double, double, bool);
-	extern void canvas_setClipPolygon(bool);
+    extern void canvas_textBoundary(const char*, double*, double*);
+    extern void canvas_setClipRect(double, double, double, double);
+	extern void canvas_setClipPolygon();
     extern void canvas_setBrushColor(double, double, double, double);
     extern void canvas_setLineColor(double, double, double, double);
     extern void canvas_setLineWidth(double);
@@ -31,7 +31,7 @@ extern "C" {
     extern void canvas_rectangle(double, double, double, double);
     extern void canvas_circle(double, double, double);
     extern void canvas_line(double, double, double, double);
-    extern void canvas_text(double, double, double, double, const char*, double);
+    extern void canvas_text(double, double, double, double, const char*);
     extern void canvas_setBrushGradient(double, double, double, double, int, const char*);
 	extern int canvas_loadSvgImage(const char*);
 	extern int canvas_loadPixMapImage(const char*);
@@ -39,16 +39,13 @@ extern "C" {
 	extern void canvas_dropImage(int);
 	extern void canvas_frameBegin();
     extern void canvas_frameEnd();
-	extern void canvas_pushTransform(double, double, double, double);
-    extern void canvas_popTransform();
+	extern void canvas_transform(double, double, double, double);
+    extern void canvas_save();
+    extern void canvas_restore();
 }
 
 JScriptOutputCanvas::JScriptOutputCanvas() {
 	CanvasRuntime::start();
-	clipRect = Geom::Rect::CenteredMax();
-	brushColor = Gfx::Color::Transparent();
-	lineColor = Gfx::Color::Transparent();
-	lineWidth = 1;
 }
 
 JScriptOutputCanvas::~JScriptOutputCanvas() {
@@ -59,30 +56,30 @@ std::shared_ptr<Gfx::ICanvas> JScriptOutputCanvas::createCanvas(int, int)  {
 	return std::shared_ptr<JScriptOutputCanvas>();
 }
 
-Geom::Size JScriptOutputCanvas::textBoundary(
-	const std::string &text, double angle)
+Geom::Size JScriptOutputCanvas::textBoundary(const std::string &text)
 {
 	_measure_runtime(CanvasRuntime);
 	Geom::Size res;
-	::canvas_textBoundary(text.c_str(), angle, &res.x, &res.y);
+	::canvas_textBoundary(text.c_str(), &res.x, &res.y);
 	return res;
 }
 
 Geom::Rect JScriptOutputCanvas::getClipRect() const {
-	return clipRect;
+	return clipRect ? *clipRect : Geom::Rect::CenteredMax();
 }
 
-void JScriptOutputCanvas::setClipRect(const Geom::Rect &rect, bool clear) {
+void JScriptOutputCanvas::setClipRect(const Geom::Rect &rect) 
+{
 	_measure_runtime(CanvasRuntime);
-	if (clipRect != rect || clear) {
-		clipRect = clear ? Geom::Rect::CenteredMax() : rect;
-		::canvas_setClipRect(rect.pos.x, rect.pos.y, rect.size.x, rect.size.y, clear);
+	if (!clipRect || *clipRect != rect) {
+		clipRect = rect;
+		::canvas_setClipRect(rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
 	}
 }
 
-void JScriptOutputCanvas::setClipPolygon(bool clear) {
+void JScriptOutputCanvas::setClipPolygon() {
 	_measure_runtime(CanvasRuntime);
-	::canvas_setClipPolygon(clear);
+	::canvas_setClipPolygon();
 }
 
 void JScriptOutputCanvas::setBrushColor(const Gfx::Color &color) {
@@ -167,11 +164,11 @@ void JScriptOutputCanvas::line(const Geom::Line& line) {
 }
 
 void JScriptOutputCanvas::text(const Geom::Rect& rect,
-	const std::string &str, double angle)
+	const std::string &str)
 {
 	_measure_runtime(CanvasRuntime);
 	::canvas_text(rect.pos.x, rect.pos.y, rect.size.x, rect.size.y,
-		str.c_str(), angle);
+		str.c_str());
 }
 
 void JScriptOutputCanvas::setBrushGradient(
@@ -215,16 +212,32 @@ void JScriptOutputCanvas::frameEnd() {
 
 void JScriptOutputCanvas::frameBegin() {
 	_measure_runtime(CanvasRuntime);
+	resetStates();
 	::canvas_frameBegin();
 }
 
-void JScriptOutputCanvas::pushTransform(const Geom::AffineTransform &transform) {
+void JScriptOutputCanvas::transform(const Geom::AffineTransform &transform) {
 	_measure_runtime(CanvasRuntime);
-	::canvas_pushTransform(transform.offset.x, transform.offset.y,
+	::canvas_transform(transform.offset.x, transform.offset.y,
 		transform.scale, transform.rotate);
 }
 
-void JScriptOutputCanvas::popTransform() {
+void JScriptOutputCanvas::save() {
 	_measure_runtime(CanvasRuntime);
-	::canvas_popTransform();
+	::canvas_save();
+}
+
+void JScriptOutputCanvas::restore() {
+	_measure_runtime(CanvasRuntime);
+	::canvas_restore();
+	resetStates();
+}
+
+void JScriptOutputCanvas::resetStates()
+{
+	font = std::nullopt;
+	brushColor = std::nullopt;
+	lineColor = std::nullopt;
+	lineWidth = std::nullopt;
+	clipRect = std::nullopt;
 }

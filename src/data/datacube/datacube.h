@@ -3,6 +3,7 @@
 
 #include <list>
 #include <map>
+#include <string>
 
 #include "data/multidim/multidimarray.h"
 
@@ -22,13 +23,20 @@ template <typename T> class TableRow;
 struct SubCellIndexTypeId {};
 typedef Type::UniqueType<uint64_t, SubCellIndexTypeId> SubCellIndex;
 
+typedef std::map<std::string, std::string> CategoryMap;
+typedef std::map<std::string, double> ValueMap;
+struct CellInfo {
+	CategoryMap categories;
+	ValueMap values;
+};
+
 class DataCube
 {
 public:
 
 	typedef MultiDim::Array<DataCubeCell> Data;
 
-	DataCube() {}
+	DataCube() : table(nullptr) {}
 
 	DataCube(const DataTable &table,
 	    const DataCubeOptions &options,
@@ -72,9 +80,14 @@ public:
 
 	bool empty() const;
 
-private:
+	ValueMap values(const MultiDim::MultiIndex &index) const;
+	CategoryMap categories(const MultiDim::MultiIndex &index) const;
+	CellInfo cellInfo(const MultiDim::MultiIndex &index) const;
+	MultiDim::SubSliceIndex subSliceIndex(const CategoryMap &categories) const;
 
+private :
 	Data data;
+	const DataTable *table;
 	std::map<SeriesIndex, MultiDim::DimIndex> dimBySeries;
 	std::vector<SeriesIndex> seriesByDim;
 

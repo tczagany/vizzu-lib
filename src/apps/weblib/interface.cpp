@@ -1,15 +1,18 @@
 #include "interface.h"
 
 #include <sstream>
+#include <span>
 
 #include "base/io/log.h"
 #include "base/io/memorystream.h"
+#include "base/text/jsonoutput.h"
 #include "jscriptcanvas.h"
 
 extern "C" {
 	extern char* jsconsolelog(const char*);
 	extern void setMouseCursor(const char *cursor);
-	extern char* event_invoked(int, const char*);
+	extern void event_invoked(int, const char*);
+	extern void removeJsFunction(void *);
 }
 
 using namespace Util;
@@ -21,6 +24,7 @@ Interface::Interface() : versionStr(std::string(Main::version))
 {
 	needsUpdate = false;
 	logging = false;
+	eventParam = nullptr;
 }
 
 const char *Interface::version() const
@@ -28,21 +32,74 @@ const char *Interface::version() const
 	return versionStr.c_str();
 }
 
+void *Interface::storeChart()
+{
+	auto snapshot = std::make_shared<Snapshot>(
+		chart->getChart().getOptions(), 
+		chart->getChart().getStyles()
+	);
+	snapshots.emplace(snapshot.get(), snapshot);
+	return snapshot.get();
+}
+
+void Interface::restoreChart(void *chartPtr)
+{
+	auto it = snapshots.find(chartPtr);
+	if (it == snapshots.end() || !it->second) 
+		throw std::logic_error("No such chart exists");
+	chart->getChart().setOptions(it->second->options);
+	chart->getChart().setStyles(it->second->styles);
+}
+
+void Interface::freeChart(void *chart)
+{
+	auto it = snapshots.find(chart);
+	if (it == snapshots.end()) throw std::logic_error("No such chart exists");
+	snapshots.erase(it);
+}
+
+const char *Interface::getStyleList()
+{
+	static std::string res = Text::toJSon(Styles::Sheet::paramList());
+	return res.c_str();
+}
+
+const char *Interface::getStyleValue(const char *path)
+{
+	if (chart)
+	{
+		static std::string res;
+		auto &styles = chart->getChart().getComputedStyles();
+		res = Styles::Sheet::getParam(styles, path);
+		return res.c_str();
+	}
+	else throw std::logic_error("No chart exists");
+}
+
 void Interface::setStyleValue(const char *path, const char *value)
 {
-	try {
-		if (chart)
-		{
-			if (chart->getChart().getStylesheet().hasParam(path))
-				chart->getChart().getStylesheet().setParam(path, value);
-			else
-				throw std::logic_error(
-				    "non-existent style parameter: " + std::string(path));
-		}
+	if (chart)
+	{
+		chart->getChart().getStylesheet().setParam(path, value);
 	}
-	catch(std::exception &e) {
-		IO::log() << path << value << "error:" << e.what() << '\n';
+	else throw std::logic_error("No chart exists");
+}
+
+const char *Interface::getChartParamList()
+{
+	static std::string res = Text::toJSon(Diag::Config::listParams());
+	return res.c_str();
+}
+
+const char *Interface::getChartValue(const char *path)
+{
+	if (chart)
+	{
+		static std::string res;
+		res = chart->getChart().getConfig().getParam(path); 
+		return res.c_str();
 	}
+	else throw std::logic_error("No chart exists");
 }
 
 void Interface::setChartValue(const char *path, const char *value)
@@ -51,7 +108,7 @@ void Interface::setChartValue(const char *path, const char *value)
 	{
 		if (chart)
 		{
-			chart->getChart().getDescriptor().setParam(path, value);
+			chart->getChart().getConfig().setParam(path, value);
 		}
 	}
 	catch (std::exception &e)
@@ -64,7 +121,9 @@ void Interface::setChartFilter(bool (*filter)(const void *))
 {
 	if (chart)
 	{
-		chart->getChart().getDescriptor().setFilter(filter);
+		chart->getChart().getConfig().setFilter(filter, 
+			reinterpret_cast<void (*)(bool (*)(const void*))>
+				(removeJsFunction));
 	}
 }
 
@@ -83,12 +142,10 @@ const void *Interface::getRecordValue(void *record,
 int Interface::addEventListener(const char * event) {
 	auto& ed = chart->getChart().getEventDispatcher();
 	auto id = ed[event]->attach([&](EventDispatcher::Params& params) {
+		eventParam = &params;
 		auto jsonStrIn = params.toJsonString();
-		auto jsonStrOut = event_invoked(params.handler, jsonStrIn.c_str());
-		if (jsonStrOut) {
-			params.fromJsonString(jsonStrOut);
-			free(jsonStrOut);
-		}
+		event_invoked(params.handler, jsonStrIn.c_str());
+		eventParam = nullptr;
 	});
 	return (int)id;
 }
@@ -96,6 +153,11 @@ int Interface::addEventListener(const char * event) {
 void Interface::removeEventListener(const char * event, int id) {
 	auto& ed = chart->getChart().getEventDispatcher();
 	ed[event]->detach(id);
+}
+
+void Interface::preventDefaultEvent()
+{
+	if (eventParam) eventParam->preventDefault = true;
 }
 
 void Interface::animate(void (*callback)())
@@ -131,6 +193,13 @@ void Interface::animControl(const char *command, const char *param)
 	}
 }
 
+void Interface::setAnimValue(const char *path, const char *value)
+{
+	if (chart) {
+		chart->getChart().getAnimOptions().set(path, value);
+	}
+}
+
 void Interface::addCategories(const char *name,
     const char **categories,
     int count)
@@ -154,19 +223,18 @@ void Interface::addValues(const char *name,
 	}
 }
 
-void Interface::init(double dpi, double width_mm, double height_mm)
+void Interface::init()
 {
 	IO::Log::set([=](const std::string&msg) {
 		if (logging) log((msg + "\n").c_str());
 	});
 
-	GUI::ScreenInfo screenInfo{dpi, Geom::Size(width_mm, height_mm)};
-
-	chart = std::make_shared<UI::ChartWidget>(screenInfo);
+	chart = std::make_shared<UI::ChartWidget>();
 	chart->doChange = [&]{ needsUpdate = true; };
 	chart->setMouseCursor = [&](GUI::Cursor cursor) {
 		::setMouseCursor(GUI::toCSS(cursor));
 	};
+	needsUpdate = true;
 }
 
 void Interface::poll()
@@ -183,10 +251,12 @@ void Interface::update(double, double width, double height, bool force)
 
 	auto now = std::chrono::steady_clock::now();
 	chart->getChart().getAnimControl().update(now);
-
-	if (needsUpdate || force) {
+	
+	Geom::Size size(width, height);
+	
+	if (needsUpdate || force || chart->getBoundary().size != size) 
+	{
 		try {
-			Geom::Size size(width, height);
 			Vizzu::Main::JScriptCanvas canvas;
 			canvas.frameBegin();
 			chart->updateSize(canvas, size);

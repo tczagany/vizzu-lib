@@ -8,14 +8,17 @@ import VizzuModule from './cvizzu.js';
 
 export default class Vizzu
 {
-	constructor(container, onLoaded)
+	constructor(container)
 	{
 		this.container = container;
-		this.onLoaded = onLoaded;
 		this.started = false;
 
 		this.initializing = VizzuModule().then((module) => {
 			return this.init(module);
+		});
+
+		this.snapshotRegistry = new FinalizationRegistry(snapshot => {
+			this.call(this.module._chart_free)(snapshot);
 		});
 	}
 
@@ -27,7 +30,7 @@ export default class Vizzu
 				let address = parseInt(e);
 				let cMessage = this.module._vizzu_errorMessage(address);
 				let message = this.module.UTF8ToString(cMessage);
-				throw "error: " + message;
+				throw new Error('error: ' + message);
 			}
 		}
 	}
@@ -46,10 +49,24 @@ export default class Vizzu
 		})
 	}
 
+	setNestedProp(obj, path, value) 
+	{
+		let propList = path.split('.');
+		let propName;
+		while ((propName = propList.shift()) !== undefined)
+		{
+			if (propList.length > 0) obj = obj[propName] ??= {};
+			else obj[propName] = value.startsWith('[') 
+				? JSON.parse(value) : value;
+			// todo: detecting JSon here is only a workaround, 
+			//       we should use a format parameter instead  
+		}
+	}
+
 	setValue(path, value, setter)
 	{
 		if (typeof path !== 'string' && ! (path instanceof String))
-			throw 'first parameter should be string';
+			throw new Error('first parameter should be string');
 
 		let cpath = this.toCString(path);
 		let cvalue = this.toCString(String(value).toString());
@@ -71,29 +88,123 @@ export default class Vizzu
 		});
 	}
 
-	setDescriptor(descriptor)
+	cloneObject(lister, getter)
 	{
-		this.iterateObject(descriptor, (path, value) => {
+		let clistStr = this.call(lister)();
+		let listStr = this.fromCString(clistStr); 
+		let list = JSON.parse(listStr);
+		let res = {}
+		for (let path of list) 
+		{
+			let cpath = this.toCString(path);
+			let cvalue;
+			try {
+				cvalue = this.call(getter)(cpath);
+				let value = this.fromCString(cvalue);
+				this.setNestedProp(res, path, value);
+			}
+			finally
+			{
+				this.module._free(cpath);
+			}
+		}
+		Object.freeze(res);
+		return res;
+	}
+
+	get config()
+	{
+		return this.cloneObject(
+			this.module._chart_getList,
+			this.module._chart_getValue);
+	}
+
+	get styles() 
+	{
+		return this.cloneObject(
+			this.module._style_getList,
+			this.module._style_getValue);
+	}
+
+	setConfig(config)
+	{
+		if (config !== null 
+			&& typeof config === 'object'
+			&& config.channels !== undefined
+			&& config.channels !== null
+			&& typeof config.channels === 'object')
+		{
+			let channels = config.channels;
+			for (const ch in channels)
+			{
+				if (typeof channels[ch] === 'string') 
+					channels[ch] = [ channels[ch] ];
+
+				if (channels[ch] === null 
+					|| Array.isArray(channels[ch])) 
+					channels[ch] = { set: channels[ch] };
+
+				if (typeof channels[ch].attach === 'string')
+					channels[ch].attach = [ channels[ch].attach ];
+
+				if (typeof channels[ch].detach === 'string')
+					channels[ch].detach = [ channels[ch].detach ];
+
+				if (typeof channels[ch].set === 'string')
+					channels[ch].set = [ channels[ch].set ];
+
+				if (Array.isArray(channels[ch].set)
+				    && channels[ch].set.length == 0)
+					channels[ch].set = null;
+			}
+		}
+
+		this.iterateObject(config, (path, value) => {
 			this.call(this.module._chart_setValue)(path, value);
 		});
 	}
 
-	addEventListener(eventName, handler) {
+	on(eventName, handler) {
 		this.events.add(eventName, handler);
 	}
 
-	removeEventListener(eventName, handler) {
+	off(eventName, handler) {
 		this.events.remove(eventName, handler);
 	}
 
-	animate(obj)
+	store() {
+		let id = this.call(this.module._chart_store)();
+		let snapshot = { id };
+		this.snapshotRegistry.register(snapshot, id);
+		return snapshot;
+	}
+
+	restore(snapshot) 
+	{
+		this.call(this.module._chart_restore)(snapshot.id);
+	}
+
+	animate(obj, animOptions)
 	{
 		if (obj !== null && obj !== undefined && typeof obj === 'object')
 		{
-			this.data.set(obj.data);
-			this.setStyle(obj.style);
-			this.setDescriptor(obj.descriptor);
+			if (obj.id !== undefined) this.restore(obj);
+			else 
+			{
+				if (!obj.hasOwnProperty('data')
+					&& !obj.hasOwnProperty('style')
+					&& !obj.hasOwnProperty('config'))
+				{
+					obj = { config: obj };
+				}
+
+				this.data.set(obj.data);
+				this.setStyle(obj.style);
+				this.setConfig(obj.config);
+			}
 		}
+
+		this.setAnimation(animOptions);
 
 		return new Promise((resolve, reject) => {
 			let callbackPtr = this.module.addFunction(() => {
@@ -102,6 +213,29 @@ export default class Vizzu
 			}, 'v');
 			this.call(this.module._chart_animate)(callbackPtr);
 		});
+	}
+
+	setAnimation(animOptions)
+	{
+		if (animOptions !== undefined) 
+		{
+			if (animOptions === null) {
+				animOptions = { duration: 0 };
+			}
+			else if (typeof animOptions === 'string'
+				|| typeof animOptions === 'number')
+			{
+				animOptions = { duration: animOptions };
+			}
+
+			if (typeof animOptions === 'object') 
+			{
+				this.iterateObject(animOptions, (path, value) => {
+					this.call(this.module._anim_setValue)(path, value);
+				});
+			}
+			else throw new Error('invalid animation option');
+		}
 	}
 
 	get animation() {
@@ -118,6 +252,9 @@ export default class Vizzu
 	start() {
 		if (!this.started)
 		{
+			this.call(this.module._vizzu_poll)();
+			this.render.updateFrame(false);
+
 			setInterval(()=>{
 				this.call(this.module._vizzu_poll)();
 			}, 10);
@@ -154,6 +291,27 @@ export default class Vizzu
 	init(module)
 	{
 		this.module = module;
+
+		let canvas = this.createCanvas();
+
+		this.render = new Render;
+		this.module.render = this.render;
+		this.data = new Data(this);
+		this.events = new Events(this);
+		this.module.events = this.events;
+		this.render.init(this.call(this.module._vizzu_update), canvas, false);
+		this.call(this.module._vizzu_init)();
+		this.call(this.module._vizzu_setLogging)(false);
+
+		this.setupDOMEventHandlers(canvas);
+
+		this.start();
+
+		return this;
+	}
+
+	createCanvas() 
+	{
 		let canvas = null;
 		let placeholder = this.container;
 
@@ -162,7 +320,8 @@ export default class Vizzu
 		}
 
 		if (!placeholder) {
-			throw(`Cannot find container ${this.container} to render Vizzu!`);
+			throw new Error
+				(`Cannot find container ${this.container} to render Vizzu!`);
 		}
 
 		if (placeholder instanceof HTMLCanvasElement) {
@@ -175,18 +334,14 @@ export default class Vizzu
 		}
 
 		if (!(canvas instanceof HTMLCanvasElement)) {
-			throw("Error initializing <canvas> for Vizzu!");
+			throw new Error("Error initializing <canvas> for Vizzu!");
 		}
 
-		this.render = new Render;
-		this.module.render = this.render;
-		this.data = new Data(this);
-		this.events = new Events(this);
-		this.module.events = this.events;
-		this.render.init(this.call(this.module._vizzu_update), canvas, false);
-		this.call(this.module._vizzu_init)(96,400,300);
-		this.call(this.module._vizzu_setLogging)(true);
+		return canvas;
+	}
 
+	setupDOMEventHandlers(canvas) 
+	{
 		this.resizeObserver = new ResizeObserver(entries => {
 			this.render.updateFrame(true);
 		});
@@ -223,14 +378,5 @@ export default class Vizzu
 					(key, evt.ctrlKey, evt.altKey, evt.shiftKey);
 			}
 		});
-
-		if (this.onLoaded) {
-			this.onLoaded();
-		}
-		this.start();
-
-		return this;
 	}
 }
-
-// vim: sts=0 noexpandtab

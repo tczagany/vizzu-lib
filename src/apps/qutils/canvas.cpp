@@ -179,19 +179,13 @@ Geom::Rect BaseCanvas::getClipRect() const
 									 painter.device()->height()));
 }
 
-void BaseCanvas::setClipRect(const Geom::Rect &rect, bool clear)
+void BaseCanvas::setClipRect(const Geom::Rect &rect)
 {
-	if (clear) {
-		painter.setClipping(false);
-	}
-	else
-	{
-		painter.setClipping(true);
-		painter.setClipRect(toQRect(rect));
-	}
+	painter.setClipping(true);
+	painter.setClipRect(toQRect(rect));
 }
 
-void BaseCanvas::setClipPolygon(bool) {
+void BaseCanvas::setClipPolygon() {
 }
 
 void BaseCanvas::setFont(const Gfx::Font &newFont)
@@ -241,38 +235,10 @@ void BaseCanvas::rectangle(const Geom::Rect &rect)
 }
 
 void BaseCanvas::text(const Geom::Rect &rect,
-    const std::string &text,
-    double angle)
+    const std::string &text)
 {
 	painter.setPen(textPen);
-
-	if (angle == 0) {
-		painter.drawText(toQRect(rect), Qt::AlignLeft, QString::fromStdString(text));
-	}
-	else if (angle == M_PI / 2 || angle == -M_PI / 2)
-	{
-		painter.save();
-		painter.translate(rect.pos.x, rect.pos.y + rect.size.y);
-		painter.rotate(180 * angle / M_PI);
-		painter.drawText(QRect(0, 0, rect.size.y, rect.size.x), QString::fromStdString(text));
-		painter.restore();
-	}
-	else
-	{
-		throw std::logic_error("not supported");
-/*		auto boundary = painter.boundingRect(QRect(0,0,1000,1000), Qt::AlignLeft,
-							 QString::fromStdString(text));
-
-		auto polygon = QMatrix().rotate(180 * angle / M_PI).mapToPolygon(rect);
-
-		painter.save();
-		painter.translate(rect.pos.x, rect.pos.y);
-		painter.rotate(180 * angle / M_PI);
-
-		painter.drawText(QRect(0, 0, rect.size.x, rect.size.y), QString::fromStdString(text));
-
-		painter.restore();
-	*/}
+	painter.drawText(toQRect(rect), Qt::AlignLeft, QString::fromStdString(text));
 }
 
 void BaseCanvas::setBrushGradient(const Geom::Line &line, const Gfx::ColorGradient &gradient)
@@ -365,28 +331,26 @@ QPen BaseCanvas::brushToPen(const QBrush &brush)
 	return pen;
 }
 
-Geom::Size BaseCanvas::textBoundary(const std::string &text,
-    double angle)
+Geom::Size BaseCanvas::textBoundary(const std::string &text)
 {
 	QFontMetrics metrics(painter.font());
 	auto res = metrics.boundingRect(QRect(0, 0, 0, 0),
 	    Qt::AlignLeft,
 	    QString::fromStdString(text));
 
-	if (angle != 0)
-	{
-		res = QMatrix().rotate(180 * angle / M_PI).mapRect(res);
-	}
 	return Geom::Size(res.width(), res.height());
 }
 
-void BaseCanvas::pushTransform(const Geom::AffineTransform &transform) {
-	painter.save();
+void BaseCanvas::transform(const Geom::AffineTransform &transform) {
 	painter.translate(transform.offset.x, transform.offset.y);
 	painter.rotate(transform.rotate);
 	painter.scale(transform.scale, transform.scale);
 }
 
-void BaseCanvas::popTransform() {
+void BaseCanvas::save() {
+	painter.save();
+}
+
+void BaseCanvas::restore() {
 	painter.restore();
 }

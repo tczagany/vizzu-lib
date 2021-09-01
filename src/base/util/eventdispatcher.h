@@ -12,91 +12,98 @@ namespace Util
 
 class EventDispatcher {
 public:
-    class Event;
-    class Params;
-    class Sender;
-    friend class Event;
-    typedef int handler_id;
-    typedef std::shared_ptr<Event> event_ptr;
-    typedef std::function<void(Params&)> handler_fn;
-    typedef std::map<std::string, event_ptr> event_map;
-    typedef std::list<std::pair<handler_id, handler_fn>> handler_list;
-    typedef std::map<uint64_t, std::list<handler_id>> handler_map;
+	class Event;
+	class Params;
+	class Sender;
+	friend class Event;
+	typedef int handler_id;
+	typedef std::shared_ptr<Event> event_ptr;
+	typedef std::function<void(Params &)> handler_fn;
+	typedef std::map<std::string, event_ptr> event_map;
+	typedef std::list<std::pair<handler_id, handler_fn>> handler_list;
+	typedef std::map<uint64_t, std::list<handler_id>> handler_map;
 
-    class Sender {
-        public:
-            virtual ~Sender();
-            virtual std::string toJsonString();
-    };
+	class Sender
+	{
+	public:
+		virtual ~Sender();
+		virtual std::string toJsonString() const;
+	};
 
-    class Params {
-        public:
-            Params(Sender& sptr);
-            virtual ~Params();
-            event_ptr event;
-            Sender& sender;
-            handler_id handler;
-            bool stopPropagation;
+	class Params
+	{
+	public:
+		Params(const Sender *sptr = nullptr);
+		virtual ~Params();
+		event_ptr event;
+		const Sender *sender;
+		handler_id handler;
+		bool stopPropagation;
+		bool preventDefault;
 
-            virtual std::string toJsonString();
-            virtual void fromJsonString(const char* jstr);
-    };
+		std::string toJsonString() const;
+		virtual std::string dataToJson() const;
+		virtual void jsonToData(const char *jstr);
+	};
 
-    class Event : public std::enable_shared_from_this<Event> {
-            friend class EventDispatcher;
-            
-        public:
-            Event(EventDispatcher& owner, const char* name);
-            virtual ~Event();
+	class Event : public std::enable_shared_from_this<Event>
+	{
+		friend class EventDispatcher;
 
-            const std::string name() const;
-            void invoke(Params& params);
-            handler_id attach(handler_fn handler);
-            void detach(handler_id id);
-            operator bool() const;
-            void operator()(Params& params);
+	public:
+		Event(EventDispatcher &owner, const char *name);
+		virtual ~Event();
 
-            template<typename T>
-            handler_id attach(const T& handlerOwner, handler_fn handler) {
-                auto id = attach(handler);
-                owner.registerHandler((uint64_t)&handlerOwner, id);
-                return id;
-            }
+		const std::string name() const;
+		bool invoke(Params &&params = Params());
+		handler_id attach(handler_fn handler);
+		void detach(handler_id id);
+		operator bool() const;
+		bool operator()(Params &&params);
 
-            template<typename T>
-            void detach(const T& handlerOwner) {
-                owner.unregisterHandler(shared_from_this(), (uint64_t)&handlerOwner);
-            }
+		template <typename T>
+		handler_id attach(const T &handlerOwner, handler_fn handler)
+		{
+			auto id = attach(handler);
+			owner.registerHandler((uint64_t)&handlerOwner, id);
+			return id;
+		}
 
-        protected:
-            bool active;
-            std::string uniqueName;
-            handler_list handlers;
-            static handler_id nextId;
-            EventDispatcher& owner;
-            handler_id currentlyInvoked;
-            handler_list handlersToRemove;
+		template <typename T> void detach(const T &handlerOwner)
+		{
+			owner.unregisterHandler(shared_from_this(),
+			    (uint64_t)&handlerOwner);
+		}
 
-            void deactivate();
-    };
+	protected:
+		bool active;
+		std::string uniqueName;
+		handler_list handlers;
+		static handler_id nextId;
+		EventDispatcher &owner;
+		handler_id currentlyInvoked;
+		handler_list handlersToRemove;
+
+		void deactivate();
+	};
 
 public:
-    virtual ~EventDispatcher();
+	virtual ~EventDispatcher();
 
-    const event_ptr getEvent(const char* name);
-    event_ptr operator[](const char* name);
-    const event_ptr createEvent(const char* name);
-    bool destroyEvent(const char* name);
-    bool destroyEvent(const event_ptr& event);
+	const event_ptr getEvent(const char *name);
+	event_ptr operator[](const char *name);
+	const event_ptr createEvent(const char *name);
+	bool destroyEvent(const char *name);
+	bool destroyEvent(const event_ptr &event);
 
 protected:
-    event_map eventRegistry;
-    handler_map handlerRegistry;
+	event_map eventRegistry;
+	handler_map handlerRegistry;
 
-    void registerHandler(uint64_t owner, handler_id id);
-    void unregisterHandler(const event_ptr& event, uint64_t owner);
+	void registerHandler(uint64_t owner, handler_id id);
+	void unregisterHandler(const event_ptr &event, uint64_t owner);
 };
 
 }
 
-#endif //UTIL_EVENTDISPATCHER
+#endif

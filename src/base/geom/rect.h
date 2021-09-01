@@ -37,6 +37,7 @@ struct Rect
 	}
 
 	Rect operator*(double factor) const;
+	Rect operator+(const Geom::Rect &other) const;
 
 	double left() const { return pos.x; }
 	double right() const { return pos.x + size.x; }
@@ -88,9 +89,13 @@ struct Rect
 	}
 
 	Rect bottomHalf() const { return Rect(pos, size.verticalHalf()); }
-	Rect topHalf() const { return Rect(Point(left(), center().y), size.verticalHalf()); }
+	Rect topHalf() const { 
+		return Rect(Point(left(), center().y), size.verticalHalf()); 
+	}
 	Rect leftHalf() const { return Rect(pos, size.horizontalHalf()); }
-	Rect rightHalf() const { return Rect(Point(center().x, bottom()), size.horizontalHalf()); }
+	Rect rightHalf() const { 
+		return Rect(Point(center().x, bottom()), size.horizontalHalf()); 
+	}
 
 	Line leftSide() const { return Line(topLeft(), bottomLeft()); }
 	Line rightSide() const { return Line(topRight(), bottomRight()); }
@@ -102,7 +107,10 @@ struct Rect
 	Point center() const;
 
 	explicit operator std::string() const {
-		return "{ pos: " + (std::string)pos + ", size: " + (std::string)size + " }";
+		return "{"
+			"\"pos\":" + (std::string)pos + ","
+			"\"size\":" + (std::string)size + 
+		"}";
 	}
 
 	Rect outline(const Geom::Size &margin) const {

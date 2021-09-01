@@ -15,6 +15,14 @@ Options::Options()
 	sorted.set(false);
 	reverse.set(false);
 	bubbleChartAlgorithm.set(BubbleChartAlgorithm::slow);
+	title.set(std::nullopt);
+}
+
+void Options::reset()
+{
+	scales.reset();
+	title.set(title.get().get().has_value() 
+		? Title(std::string()) : Title(std::nullopt));
 }
 
 const Scale *Options::subAxisOf(Scales::Id id) const
@@ -33,19 +41,19 @@ const Scale *Options::subAxisOf(Scales::Id id) const
 
 	case ShapeType::Type::Line:
 		return id.type == subAxisType()
-				|| (id.type == Scale::Type::Size && scales.anyAxisSet())
-			? &scales.at(Scales::Id{ Scale::Type::Size, id.index })
+				|| (id.type == ScaleId::size && scales.anyAxisSet())
+			? &scales.at(Scales::Id{ ScaleId::size, id.index })
 			: nullptr;
 
 	case ShapeType::Type::Circle:
 		// todo: should return 2 scale (size + other axis)
-		if (id.type == Scale::Type::Size && scales.anyAxisSet()) {
-			return &scales.at(Scales::Id{ Scale::Type::Size, id.index });
+		if (id.type == ScaleId::size && scales.anyAxisSet()) {
+			return &scales.at(Scales::Id{ ScaleId::size, id.index });
 		} else if (isAxis(id.type)) {
 			if (scales.at(id).isPseudoDiscrete() && id.type == mainAxisType())
 				return  &subAxis(id.index);
 			else
-				return &scales.at(Scales::Id{ Scale::Type::Size, id.index });
+				return &scales.at(Scales::Id{ ScaleId::size, id.index });
 		} else return nullptr;
 
 	default:
@@ -53,7 +61,7 @@ const Scale *Options::subAxisOf(Scales::Id id) const
 	}
 }
 
-Scale::Type Options::stackAxisType() const
+ScaleId Options::stackAxisType() const
 {
 	switch ((ShapeType::Type)shapeType.get())
 	{
@@ -62,7 +70,7 @@ Scale::Type Options::stackAxisType() const
 
 	default:
 	case ShapeType::Type::Circle:
-	case ShapeType::Type::Line: return Scale::Type::Size;
+	case ShapeType::Type::Line: return ScaleId::size;
 	}
 }
 
@@ -83,16 +91,16 @@ bool Options::operator==(const Options &other) const
 			&& legend.get() == other.legend.get();
 }
 
-Scale::Type Options::getHorizontalScale() const
+ScaleId Options::getHorizontalScale() const
 {
 	return (Math::rad2quadrant(angle.get()) % 2) == 0
-			? Scale::Type::X : Scale::Type::Y;
+			? ScaleId::x : ScaleId::y;
 }
 
-Scale::Type Options::getVeritalScale() const
+ScaleId Options::getVeritalScale() const
 {
-	return getHorizontalScale() == Scale::Type::X
-			? Scale::Type::Y : Scale::Type::X;
+	return getHorizontalScale() == ScaleId::x
+			? ScaleId::y : ScaleId::x;
 }
 
 bool Options::isShapeValid(const ShapeType::Type &shapeType) const
@@ -104,4 +112,44 @@ bool Options::isShapeValid(const ShapeType::Type &shapeType) const
 	}
 	else return shapeType == ShapeType::Rectangle
 				|| shapeType == ShapeType::Circle;
+}
+
+void Options::setAutoParameters()
+{
+	if (legend.get().get().isAuto()) 
+	{
+		Base::AutoParam<ScaleId> tmp = legend.get().get();
+		tmp.setAuto(getAutoLegend());
+		legend.set(tmp);
+	}
+}
+
+std::optional<ScaleId> Options::getAutoLegend()
+{
+	auto series = scales.getDimensions();
+	series.merge(scales.getSeries());
+
+	for (auto id: scales.at(ScaleId::label).discretesIds())
+		series.erase(id);
+
+	if (!scales.at(ScaleId::label).isPseudoDiscrete())
+		series.erase(*scales.at(ScaleId::label).continousId());
+
+	for (auto scaleId : { ScaleId::x, ScaleId::y })
+	{
+		auto id = scales.at(scaleId).labelSeries();
+		if (id) series.erase(*id);
+	}
+
+	for (auto scaleId : { ScaleId::color, ScaleId::lightness })
+		for (auto id: scales.at(scaleId).discretesIds())
+			if (series.contains(id))
+				return scaleId;
+
+	for (auto scaleId : { ScaleId::color, ScaleId::lightness, ScaleId::size })
+		if (!scales.at(scaleId).isPseudoDiscrete())
+			if (series.contains(*scales.at(scaleId).continousId()))
+				return scaleId;
+
+	return std::nullopt;
 }

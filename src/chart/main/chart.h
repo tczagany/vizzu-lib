@@ -13,7 +13,8 @@
 #include "chart/generator/diagram.h"
 #include "chart/main/layout.h"
 #include "chart/main/stylesheet.h"
-#include "chart/options/descriptor.h"
+#include "chart/options/config.h"
+#include "chart/rendering/painter/coordinatesystem.h"
 #include "data/table/datatable.h"
 #include "events.h"
 
@@ -33,14 +34,20 @@ public:
 
 	Data::DataTable &getTable() { return table; }
 	Diag::OptionsSetterPtr getSetter();
-	Stylesheet &getStylesheet() { return stylesheet; }
+	Styles::Sheet &getStylesheet() { return stylesheet; }
 	Styles::Chart &getStyles() { return actStyles; }
-	Diag::DiagramPtr getDiagram() { return actDiagram; }
+	Styles::Chart &getComputedStyles() { return computedStyles; }
+	void setStyles(const Styles::Chart &styles) { actStyles = styles; actStyles.setup(); }
+	Diag::Options getOptions() { return *nextOptions; }
+	void setOptions(const Diag::Options &options) { *nextOptions = options; }
+	Diag::DiagramPtr getDiagram() const { return actDiagram; }
 	::Anim::Control &getAnimControl() { return *animator; }
+	Anim::Options &getAnimOptions() { return nextAnimOptions; }
 	Events &getEvents() { return events; }
 	Util::EventDispatcher &getEventDispatcher() { return eventDispatcher; }
+	Draw::CoordinateSystem getCoordSystem() const;
 
-	Diag::Descriptor getDescriptor();
+	Diag::Config getConfig();
 
 	void animate(Event onComplete = Event());
 	const Diag::Marker *markerAt(const Geom::Point &point) const;
@@ -51,13 +58,15 @@ private:
 	Data::DataTable table;
 	Diag::DiagramPtr actDiagram;
 	Diag::DiagramOptionsPtr nextOptions;
-	Stylesheet stylesheet;
+	Anim::Options nextAnimOptions;
+	Styles::Sheet stylesheet;
 	Styles::Chart actStyles;
-	Events events;
+	Styles::Chart computedStyles;
 	Util::EventDispatcher eventDispatcher;
+	Events events;
 
 	Diag::DiagramPtr diagram(
-	    Diag::DiagramOptionsPtr options) const;
+	    Diag::DiagramOptionsPtr options);
 };
 
 }

@@ -2,6 +2,7 @@
 
 #include "chart/rendering/drawguides.h"
 #include "chart/rendering/drawinterlacing.h"
+#include "chart/rendering/draworientedlabel.h"
 
 #include "drawlabel.h"
 
@@ -19,16 +20,10 @@ drawAxes::drawAxes(const DrawingContext &context,
 
 void drawAxes::drawBase()
 {
-	if ((*style.plot.axis.interlacing.color).alpha > 0.0)
-		drawInterlacing(*this, guides, false);
+	drawInterlacing(*this, guides, false);
 
-	auto lineBaseColor =
-	    *style.plot.axis.color * (double)diagram.anyAxisSet;
-
-	if (lineBaseColor.alpha > 0) {
-		drawAxis(Diag::Scale::Type::X, lineBaseColor);
-		drawAxis(Diag::Scale::Type::Y, lineBaseColor);
-	}
+	drawAxis(Diag::ScaleId::x);
+	drawAxis(Diag::ScaleId::y);
 
 	drawGuides(*this, guides);
 }
@@ -40,18 +35,15 @@ void drawAxes::drawLabels()
 	drawDiscreteLabels(true);
 	drawDiscreteLabels(false);
 
-	drawTitle(Diag::Scale::Type::X);
-	drawTitle(Diag::Scale::Type::Y);
+	drawTitle(Diag::ScaleId::x);
+	drawTitle(Diag::ScaleId::y);
 }
 
-Geom::Line drawAxes::getAxis(Diag::Scale::Type axisIndex) const
+Geom::Line drawAxes::getAxis(Diag::ScaleId axisIndex) const
 {
-	auto horizontal = axisIndex == Diag::Scale::Type::X;
+	auto horizontal = axisIndex == Diag::ScaleId::x;
 
-	auto otherAxisIndex =
-	    horizontal ? Diag::Scale::Type::Y : Diag::Scale::Type::X;
-
-	auto offset = diagram.axises.at(otherAxisIndex).origo();
+	auto offset = diagram.axises.other(axisIndex).origo();
 
 	auto direction = Point::Ident(horizontal);
 
@@ -64,9 +56,13 @@ Geom::Line drawAxes::getAxis(Diag::Scale::Type axisIndex) const
 		return Geom::Line();
 }
 
-void drawAxes::drawAxis(Diag::Scale::Type axisIndex,
-    const Gfx::Color &lineBaseColor)
+void drawAxes::drawAxis(Diag::ScaleId axisIndex)
 {
+	auto lineBaseColor =
+	    *style.plot.getAxis(axisIndex).color * (double)diagram.anyAxisSet;
+
+	if (lineBaseColor.alpha <= 0) return;
+
 	auto line = getAxis(axisIndex);
 
 	if (!line.isPoint())
@@ -76,67 +72,136 @@ void drawAxes::drawAxis(Diag::Scale::Type axisIndex,
 		canvas.setLineColor(lineColor);
 		canvas.setLineWidth(1.0);
 
-		painter.drawLine(line);
+		if (events.plot.axis.base
+			->invoke(Events::OnLineDrawParam(line)))
+		{
+			painter.drawLine(line);
+		}
 	}
 }
 
-void drawAxes::drawTitle(Diag::Scale::Type axisIndex)
+Geom::Point drawAxes::getTitleBasePos(Diag::ScaleId axisIndex) const
+{
+	const auto &titleStyle = style.plot.getAxis(axisIndex).title;
+
+	auto orthogonal = titleStyle.position->combine<double>([&](auto position){
+		typedef Styles::AxisTitle::Position Pos;
+		switch (position) {
+			default:
+			case Pos::min_edge: return 0.0;
+			case Pos::max_edge: return 1.0;
+			case Pos::axis: return diagram.axises.other(axisIndex).origo();
+		}
+	});
+
+	auto parallel = titleStyle.vposition->combine<double>([&](auto position){
+		typedef Styles::AxisTitle::VPosition Pos;
+		switch (position) {
+			default:
+			case Pos::end: return 1.0;
+			case Pos::middle: return 0.5;
+			case Pos::begin: return 0.0;
+		}
+	});
+
+	return axisIndex == Diag::ScaleId::x 
+		? Geom::Point(parallel, orthogonal)
+		: Geom::Point(orthogonal, parallel);
+}
+
+Geom::Point drawAxes::getTitleOffset(Diag::ScaleId axisIndex) const
+{
+	const auto &titleStyle = style.plot.getAxis(axisIndex).title;
+
+	auto vertical = titleStyle.orientation
+		->factor(Styles::AxisTitle::Orientation::vertical);
+
+	auto orthogonal = titleStyle.side->combine<double>([&](auto side){
+		typedef Styles::AxisTitle::Side Side;
+		switch (side) {
+			default:
+			case Side::positive: return -1.0;
+			case Side::negative: return 0.0;
+			case Side::upon: return -0.5;
+		}
+	});
+
+	auto parallel = titleStyle.vside->combine<double>([&](auto side){
+		typedef Styles::AxisTitle::VSide Side;
+		switch (side) {
+			default:
+			case Side::positive: return -1.0;
+			case Side::negative: return 0.0;
+			case Side::upon: return -0.5;
+		}
+	});
+
+	return axisIndex == Diag::ScaleId::x 
+		? Geom::Point(parallel, orthogonal + vertical)
+		: Geom::Point(orthogonal, parallel + vertical);
+}
+
+void drawAxes::drawTitle(Diag::ScaleId axisIndex)
 {
 	const auto &title = diagram.axises.at(axisIndex).title;
-	if (!title.empty())
+	title.visit([&](const auto &title)
 	{
-		auto line = getAxis(axisIndex);
-		if (line.isPoint()) return;
-
-		const auto &titleStyle = style.plot.axis.title;
-
-		auto size = canvas.textBoundary(title) + titleStyle.paddingSize();
-
-		Geom::Point pos;
-		if (axisIndex == Diag::Scale::Type::X)
+		if (!title.value.empty())
 		{
-			auto ref = line.center();
+			const auto &titleStyle = style.plot.getAxis(axisIndex).title;
 
-			options.polar.get().visit([&](bool value, double weight)
-			{
-				auto refCopy = ref;
-				if (value) refCopy.y = 1.0;
+			Gfx::Font font(titleStyle);
+			canvas.setFont(font);
+			auto textBoundary = canvas.textBoundary(title.value);
+			auto textMargin = titleStyle.toMargin(textBoundary, font.size);
+			auto size = textBoundary + textMargin.getSpace();
 
-				pos = coordSys.convert(refCopy) - size.xComp() / 2
-				    + Geom::Point::Y(*titleStyle.paddingTop);
+			auto base = getTitleBasePos(axisIndex);
+			auto offset = getTitleOffset(axisIndex);
 
-				canvas.setTextColor(*titleStyle.color * weight);
-				drawLabel(Geom::Rect(pos, size),
-				    title,
-				    titleStyle,
-				    canvas,
-				    false);
+			auto orientedSize = titleStyle.orientation->combine<Geom::Size>(
+			[&](auto orientation){
+				return orientation == Styles::AxisTitle::Orientation::vertical
+					? size.flip() : size;
 			});
-		}
-		else
-		{
-			pos = coordSys.convert(line.end) - size.yComp()
-			    - size.xComp() / 2;
 
-			drawLabel(Geom::Rect(pos, size), title, style.plot.axis.title, canvas);
+			Geom::Point pos = coordSys.convert(base) + orientedSize * offset;
+
+			auto angle = -M_PI / 2.0 * titleStyle.orientation
+				->factor(Styles::AxisTitle::Orientation::vertical);
+
+			canvas.save();
+			canvas.transform(Geom::AffineTransform(pos, 1.0, angle));
+
+			canvas.setTextColor(*titleStyle.color * title.weight);
+
+			drawLabel(Geom::Rect(Geom::Point(), size),
+				title.value,
+				titleStyle,
+				events.plot.axis.title,
+				canvas,
+				false);
+
+			canvas.restore();
 		}
-	}
+	});
 }
 
 void drawAxes::drawDiscreteLabels(bool horizontal)
 {
-	auto &labelStyle = style.plot.axis.label;
+	auto axisIndex = horizontal ? Diag::ScaleId::x : Diag::ScaleId::y;
+
+	const auto &labelStyle = style.plot.getAxis(axisIndex).label;
+
 	auto textColor = *labelStyle.color;
 	if (textColor.alpha == 0.0) return;
 
+	auto origo = diagram.axises.origo();
 	const auto &axises = diagram.discreteAxises;
-	const auto &axis = axises.at(
-	    horizontal ? Diag::Scale::Type::X : Diag::Scale::Type::Y);
+	const auto &axis = axises.at(axisIndex);
 
 	if (axis.enabled)
 	{
-		std::vector<std::function<void()>> tasks;
-
 		canvas.setFont(Gfx::Font(labelStyle));
 
 		Diag::DiscreteAxis::Values::const_iterator it;
@@ -144,66 +209,51 @@ void drawAxes::drawDiscreteLabels(bool horizontal)
 			 it != axis.end();
 			 ++it)
 		{
-			auto rotate = false;
-			auto text = it->second.label;
-			auto weight = it->second.weight;
-			if (weight == 0) continue;
-
-			auto neededSize = canvas.textBoundary(text);
-
-			auto ident = Geom::Point::Ident(horizontal);
-			auto normal = Geom::Point::Ident(!horizontal);
-
-			auto relCenter = ident * it->second.range.middle();
-			auto relMin = ident * it->second.range.getMin();
-			auto relMax = ident * it->second.range.getMax();
-
-			auto center = coordSys.convert(relCenter);
-			auto min = coordSys.convert(relMin);
-			auto max = coordSys.convert(relMax);
-			auto pad = ((GUI::Margin)labelStyle).getSpace();
-
-			auto polarRotAngle = - M_PI * (double)coordSys.getPolar();
-			auto rotatedIdent = coordSys.justRotate(ident);
-			auto rotatedNormal = coordSys.justRotate(
-									 normal.flipY().rotated(polarRotAngle));
-
-			auto availLength = (max-min).abs();
-			auto neededLength = (rotatedIdent * neededSize).abs();
-
-			Geom::Rect rect;
-			if (!(*labelStyle.overflow == Styles::Overflow::hidden)
-				|| availLength >= neededLength)
-			{
-				auto minWidth =
-				    (rotatedIdent
-				        * Geom::Point((max - min).abs(),
-				            *style.plot.paddingLeft))
-				        .abs();
-
-				auto actWidth = std::min(minWidth, neededSize.x);
-				auto halfSize = Geom::Point(actWidth/2, neededSize.y/2);
-				auto halfPaddedSize = halfSize + pad/2;
-				auto relCenterPos = rotatedNormal * halfPaddedSize * -1;
-				auto relTextPos = halfSize * -1;
-				rect = Geom::Rect(center + relCenterPos + relTextPos,
-								  Geom::Size(actWidth, neededSize.y));
-			}
-			else
-			{
-				continue;
-			}
-
-			tasks.emplace_back([=]{
-				if (!labelStyle.backgroundColor->isTransparent()) {
-					canvas.setBrushColor(*labelStyle.backgroundColor);
-					canvas.setLineColor(*labelStyle.backgroundColor);
-					canvas.rectangle(rect);
-				}
-				canvas.setTextColor(textColor * weight);
-				canvas.text(rect, text, rotate ? - M_PI / 4 : 0);
-			});
+			drawDiscreteLabel(horizontal, origo, it);
 		}
-		for (auto &function : tasks) function();
 	}
+}
+
+void drawAxes::drawDiscreteLabel(bool horizontal,
+	const Geom::Point &origo,
+	Diag::DiscreteAxis::Values::const_iterator it)
+{
+	auto axisIndex = horizontal ? Diag::ScaleId::x : Diag::ScaleId::y;
+	const auto &labelStyle = style.plot.getAxis(axisIndex).label;
+	auto textColor = *labelStyle.color;
+
+	auto text = it->second.label;
+	auto weight = it->second.weight;
+	if (weight == 0) return;
+
+	auto ident = Geom::Point::Ident(horizontal);
+	auto normal = Geom::Point::Ident(!horizontal);
+
+	typedef Styles::AxisLabel::Position Pos;
+	labelStyle.position->visit(
+	[&](const auto &position)
+	{
+		Geom::Point refPos;
+
+		switch(position.value) {
+			case Pos::max_edge: refPos = Geom::Point::Ident(!horizontal); break;
+			case Pos::axis: refPos = origo.comp(!horizontal); break;
+			default:
+			case Pos::min_edge: refPos = Geom::Point(); break;
+		}
+
+		auto relCenter = refPos + ident * it->second.range.middle();
+
+		double under = labelStyle.side->factor
+			(Styles::AxisLabel::Side::negative);
+
+		auto direction = normal * (1 - 2 * under);
+
+		auto posDir = coordSys.convertDirectionAt(
+			Geom::Line(relCenter, relCenter + direction));
+
+		drawOrientedLabel(*this, text, posDir, labelStyle, 0, 
+			textColor * weight * position.weight, 
+			*labelStyle.backgroundColor);
+	});
 }

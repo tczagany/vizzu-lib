@@ -32,20 +32,19 @@ struct ICanvas
 	// factory.
 	virtual ICanvasPtr createCanvas(int width, int heigth) = 0;
 
-	virtual Geom::Size textBoundary(const std::string &string,
-	    double angle = 0) = 0;
-
+	virtual Geom::Size textBoundary(const std::string &string) = 0;
 	virtual Geom::Rect getClipRect() const = 0;
-	virtual void setClipRect(const Geom::Rect &rect, bool clear = false) = 0;
-	virtual void setClipPolygon(bool clear) = 0;
+	virtual void setClipRect(const Geom::Rect &rect) = 0;
+	virtual void setClipPolygon() = 0;
 	virtual void setBrushColor(const Gfx::Color &color) = 0;
 	virtual void setLineColor(const Gfx::Color &color) = 0;
 	virtual void setTextColor(const Gfx::Color &color) = 0;
 	virtual void setLineWidth(double width) = 0;
 	virtual void setFont(const Gfx::Font &font) = 0;
 
-	virtual void pushTransform(const Geom::AffineTransform &transform) = 0;
-	virtual void popTransform() = 0;
+	virtual void transform(const Geom::AffineTransform &transform) = 0;
+	virtual void save() = 0;
+	virtual void restore() = 0;
 
 	virtual void beginPolygon() = 0;
 	virtual void addPoint(const Geom::Point &point) = 0;
@@ -59,8 +58,7 @@ struct ICanvas
 	virtual void line(const Geom::Line &line) = 0;
 
 	virtual void text(const Geom::Rect &rect,
-					  const std::string &text,
-					  double angle = 0) = 0;
+					  const std::string &text) = 0;
 
 	virtual void setBrushGradient(const Geom::Line &line,
 								  const ColorGradient &gradient) = 0;

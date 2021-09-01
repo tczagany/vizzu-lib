@@ -9,25 +9,42 @@ using namespace std::chrono;
 
 Animator::Animator() : ::Anim::Control(static_cast<Planner&>(*this))
 {
-	source = nullptr;
+	::Anim::Control::setOnChange([&]
+	{
+		if (onProgress) onProgress();
+		if (onDraw) onDraw(actual);
+	});
+
+	::Anim::Control::setOnFinish([&] { finish(); });
 }
 
 void Animator::init(Diag::DiagramPtr diagram)
 {
-	if (!source) {
-		source = std::move(diagram);
-		source->detachOptions();
+	if (target)
+	{
+		source = targetCopy ? targetCopy : target;
+		actual.reset();
+		target.reset();
+		targetCopy.reset();
+	}
 
-		::Anim::Control::setOnChange([&]
+	if (diagram)
+	{
+		if ((!source || source->isEmpty()) && diagram)
 		{
-			if (onDraw) onDraw(actual);
-		});
-
-		::Anim::Control::setOnFinish([&] { finish(); });
+			auto emptyOpt = std::make_shared<Diag::Options>(*diagram->getOptions());
+			emptyOpt->reset();
+			source = std::make_shared<Diag::Diagram>(diagram->getTable(), 
+				emptyOpt, diagram->getStyle(), false);
+			source->keepAspectRatio = diagram->keepAspectRatio;
+		}
+		target = diagram;
+		target->detachOptions();
 	}
 }
 
 void Animator::animate(const Diag::DiagramPtr &diagram,
+    Options &&options,
     OnComplete onThisCompletes)
 {
 	if (isRunning()) throw std::logic_error("animation already in progress");
@@ -36,24 +53,18 @@ void Animator::animate(const Diag::DiagramPtr &diagram,
 	diagram->detachOptions();
 
 	init(diagram);
-	target = diagram;
 	onComplete = onThisCompletes;
-	target->detachOptions();
 	prepareActual();
-	createPlan(*source, *target, *actual);
+	createPlan(*source, *target, *actual, options);
 	::Anim::Control::reset();
-	::Anim::Control::play();
+	::Anim::Control::setPlayState(options.playState);
 }
 
 void Animator::finish()
 {
-	source = targetCopy ? targetCopy : target;
-	actual.reset();
-	target.reset();
-	targetCopy.reset();
 	auto f = onComplete;
 	onComplete = OnComplete();
-	if (f) f(); 
+	if (f) f(target);
 }
 
 void Animator::prepareActual()

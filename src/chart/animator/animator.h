@@ -7,6 +7,7 @@
 #include "chart/generator/diagram.h"
 
 #include "planner.h"
+#include "options.h"
 
 namespace Vizzu
 {
@@ -19,16 +20,18 @@ class Animator :
 {
 public:
 	typedef std::function<void(Diag::DiagramPtr)> OnDraw;
-	typedef std::function<void()> OnComplete;
+	typedef std::function<void()> OnProgress;
+	typedef std::function<void(Diag::DiagramPtr)> OnComplete;
 
 	Animator();
 	Animator(const Animator &) = delete;
 
-	void init(Diag::DiagramPtr diagram);
 	void animate(const Diag::DiagramPtr &diagram,
+	    Options &&options = Options(),
 	    OnComplete onThisCompletes = OnComplete());
 
 	OnDraw onDraw;
+	OnProgress onProgress;
 
 private:
 	Diag::DiagramPtr source;
@@ -36,6 +39,7 @@ private:
 	Diag::DiagramPtr targetCopy;
 	Diag::DiagramPtr actual;
 	OnComplete onComplete;
+	void init(Diag::DiagramPtr diagram);
 	void finish();
 	void prepareActual();
 	void copyTarget();

@@ -47,7 +47,10 @@ public:
 
 	Diagram(const Diagram &other) = default;
 	Diagram(DiagramOptionsPtr options, const Diagram &other);
-	Diagram(const Data::DataTable &dataTable, DiagramOptionsPtr opts, Styles::Chart style);
+	Diagram(const Data::DataTable &dataTable, 
+		DiagramOptionsPtr opts, 
+		Styles::Chart style,
+		bool setAutoParams = true);
 	const Markers &getMarkers() const { return markers; }
 	Markers &getMarkers() { return markers; }
 	DiagramOptionsPtr getOptions() const { return options; }
@@ -55,10 +58,12 @@ public:
 	const ScalesStats &getStats() const { return stats; }
 	const Styles::Chart &getStyle() const { return style; }
 	Styles::Chart &getStyle() { return style; }
+	const Data::DataTable &getTable() const { return dataTable; };
 	void detachOptions();
 	bool isEmpty() const;
 
 private:
+	const Data::DataTable &dataTable;
 	DiagramOptionsPtr options;
 	Styles::Chart style;
 	Data::DataCube dataCube;
@@ -72,9 +77,9 @@ private:
 	void linkMarkers(const Buckets &buckets, bool main);
 	void normalizeXY();
 	void calcAxises(const Data::DataTable &dataTable);
-	Axis calcAxis(Scale::Type type, const Data::DataTable &dataTable);
+	Axis calcAxis(ScaleId type, const Data::DataTable &dataTable);
 	void calcDiscreteAxises(const Data::DataTable &table);
-	void calcDiscreteAxis(Scale::Type type,
+	void calcDiscreteAxis(ScaleId type,
 	    const Data::DataTable &table);
 	void addAlignment();
 	void addSeparation();

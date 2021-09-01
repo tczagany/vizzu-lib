@@ -1,5 +1,5 @@
 {
-    "name": "vizzutest",
+    "name": "vizzu.test.integration",
     "type": "commonjs",
     "dependencies": {
         "aggregate-error": "*",
@@ -8,6 +8,8 @@
         "chromedriver": "*",
         "finalhandler": "*",
         "serve-static": "*",
-        "node-fetch": "*"
+        "node-fetch": "<3.0.0",
+        "colors": "*",
+        "express": "*"
     }
 }

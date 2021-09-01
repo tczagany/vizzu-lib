@@ -19,6 +19,31 @@ AbstractMorph::AbstractMorph(
     actual(actual)
 {}
 
+std::unique_ptr<AbstractMorph> AbstractMorph::create(SectionId sectionId,
+	const Diagram &source,
+    const Diagram &target,
+    Diagram &actual)
+{
+	switch(sectionId) {
+	case SectionId::EnumType::color: 
+		return std::make_unique<Color>(source, target, actual);
+	case SectionId::EnumType::show:
+		return std::make_unique<Show>(source, target, actual);
+	case SectionId::EnumType::hide:
+		return std::make_unique<Hide>(source, target, actual);
+	case SectionId::EnumType::x: 
+		return std::make_unique<Horizontal>(source, target, actual);
+	case SectionId::EnumType::y: 
+		return std::make_unique<Vertical>(source, target, actual);
+	case SectionId::EnumType::geometry: 
+		return std::make_unique<Shape>(source, target, actual);
+	case SectionId::EnumType::coordSystem: 
+		return std::make_unique<CoordinateSystem>
+			(source, target, actual);
+	default: throw std::logic_error("invalid animation section");
+	}
+}
+
 void AbstractMorph::transform(double factor)
 {
 	transform(source, target, actual, factor);
@@ -33,26 +58,36 @@ void AbstractMorph::transform(double factor)
 	}
 }
 
-void CoordinateSystem::transform(const Options &source,
-							const Options &target,
-							Options &actual,
+void CoordinateSystem::transform(const Diag::Options &source,
+							const Diag::Options &target,
+							Diag::Options &actual,
 							double factor) const
 {
 	actual.polar.set(interpolate(source.polar.get(), target.polar.get(), factor));
 	actual.angle.set(interpolate(source.angle.get(), target.angle.get(), factor));
 }
 
-void Enable::transform(const Marker &source,
+void Show::transform(const Marker &source,
 				   const Marker &target,
 				   Marker &actual,
 				   double factor) const
 {
-	actual.enabled = interpolate(source.enabled, target.enabled, factor);
+	if (!source.enabled && target.enabled)
+		actual.enabled = interpolate(source.enabled, target.enabled, factor);
 }
 
-void Shape::transform(const Options &source,
-				  const Options &target,
-				  Options &actual,
+void Hide::transform(const Marker &source,
+				   const Marker &target,
+				   Marker &actual,
+				   double factor) const
+{
+	if (source.enabled && !target.enabled)
+		actual.enabled = interpolate(source.enabled, target.enabled, factor);
+}
+
+void Shape::transform(const Diag::Options &source,
+				  const Diag::Options &target,
+				  Diag::Options &actual,
 				  double factor) const
 {
 	actual.shapeType.set(interpolate(source.shapeType.get(),
@@ -65,14 +100,14 @@ void Horizontal::transform(const Diagram &source,
 					  Diagram &actual,
 					  double factor) const
 {
-	actual.axises.at(Diag::Scale::Type::X) =
-	    interpolate(source.axises.at(Diag::Scale::Type::X),
-	        target.axises.at(Diag::Scale::Type::X),
+	actual.axises.at(Diag::ScaleId::x) =
+	    interpolate(source.axises.at(Diag::ScaleId::x),
+	        target.axises.at(Diag::ScaleId::x),
 	        factor);
 
-	actual.discreteAxises.at(Diag::Scale::Type::X) =
-	    interpolate(source.discreteAxises.at(Diag::Scale::Type::X),
-	        target.discreteAxises.at(Diag::Scale::Type::X),
+	actual.discreteAxises.at(Diag::ScaleId::x) =
+	    interpolate(source.discreteAxises.at(Diag::ScaleId::x),
+	        target.discreteAxises.at(Diag::ScaleId::x),
 	        factor);
 
 	actual.keepAspectRatio =
@@ -82,9 +117,9 @@ void Horizontal::transform(const Diagram &source,
 		interpolate(source.anyAxisSet, target.anyAxisSet, factor);
 }
 
-void Horizontal::transform(const Options &source,
-				  const Options &target,
-				  Options &actual,
+void Horizontal::transform(const Diag::Options &source,
+				  const Diag::Options &target,
+				  Diag::Options &actual,
 				  double factor) const
 {
 	auto sourceIsConnecting = Vizzu::Diag::isConnecting(source.shapeType.get().type());
@@ -121,24 +156,24 @@ void Vertical::transform(const Diagram &source,
 					  Diagram &actual,
 					  double factor) const
 {
-	actual.axises.at(Diag::Scale::Type::Y) =
-	    interpolate(source.axises.at(Diag::Scale::Type::Y),
-	        target.axises.at(Diag::Scale::Type::Y),
+	actual.axises.at(Diag::ScaleId::y) =
+	    interpolate(source.axises.at(Diag::ScaleId::y),
+	        target.axises.at(Diag::ScaleId::y),
 	        factor);
 
-	actual.discreteAxises.at(Diag::Scale::Type::Y) =
-	    interpolate(source.discreteAxises.at(Diag::Scale::Type::Y),
-	        target.discreteAxises.at(Diag::Scale::Type::Y),
+	actual.discreteAxises.at(Diag::ScaleId::y) =
+	    interpolate(source.discreteAxises.at(Diag::ScaleId::y),
+	        target.discreteAxises.at(Diag::ScaleId::y),
 	        factor);
 
-	actual.axises.at(Diag::Scale::Type::Size) =
-	    interpolate(source.axises.at(Diag::Scale::Type::Size),
-	        target.axises.at(Diag::Scale::Type::Size),
+	actual.axises.at(Diag::ScaleId::size) =
+	    interpolate(source.axises.at(Diag::ScaleId::size),
+	        target.axises.at(Diag::ScaleId::size),
 	        factor);
 
-	actual.discreteAxises.at(Diag::Scale::Type::Size) =
-	    interpolate(source.discreteAxises.at(Diag::Scale::Type::Size),
-	        target.discreteAxises.at(Diag::Scale::Type::Size),
+	actual.discreteAxises.at(Diag::ScaleId::size) =
+	    interpolate(source.discreteAxises.at(Diag::ScaleId::size),
+	        target.discreteAxises.at(Diag::ScaleId::size),
 	        factor);
 }
 
@@ -162,35 +197,25 @@ void Morph::Color::transform(const Diagram &source,
 	actual.anySelected =
 		interpolate(source.anySelected, target.anySelected, factor);
 
-	actual.axises.at(Diag::Scale::Type::Color) =
-	    interpolate(source.axises.at(Diag::Scale::Type::Color),
-	        target.axises.at(Diag::Scale::Type::Color),
+	actual.axises.at(Diag::ScaleId::color) =
+	    interpolate(source.axises.at(Diag::ScaleId::color),
+	        target.axises.at(Diag::ScaleId::color),
 	        factor);
 
-	actual.discreteAxises.at(Diag::Scale::Type::Color) =
-	    interpolate(source.discreteAxises.at(Diag::Scale::Type::Color),
-	        target.discreteAxises.at(Diag::Scale::Type::Color),
+	actual.discreteAxises.at(Diag::ScaleId::color) =
+	    interpolate(source.discreteAxises.at(Diag::ScaleId::color),
+	        target.discreteAxises.at(Diag::ScaleId::color),
 	        factor);
 
-	actual.axises.at(Diag::Scale::Type::Lightness) =
-	    interpolate(source.axises.at(Diag::Scale::Type::Lightness),
-	        target.axises.at(Diag::Scale::Type::Lightness),
+	actual.axises.at(Diag::ScaleId::lightness) =
+	    interpolate(source.axises.at(Diag::ScaleId::lightness),
+	        target.axises.at(Diag::ScaleId::lightness),
 	        factor);
 
-	actual.discreteAxises.at(Diag::Scale::Type::Lightness) =
-	    interpolate(source.discreteAxises.at(Diag::Scale::Type::Lightness),
-	        target.discreteAxises.at(Diag::Scale::Type::Lightness),
+	actual.discreteAxises.at(Diag::ScaleId::lightness) =
+	    interpolate(source.discreteAxises.at(Diag::ScaleId::lightness),
+	        target.discreteAxises.at(Diag::ScaleId::lightness),
 	        factor);
-}
-
-void Morph::Color::transform(const Options &source,
-    const Options &target,
-    Options &actual,
-    double factor) const
-{
-	actual.legend.set(interpolate(source.legend.get(),
-	    target.legend.get(),
-	    factor));
 }
 
 void Morph::Color::transform(const Marker &source,

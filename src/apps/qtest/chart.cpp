@@ -8,7 +8,7 @@
 
 using namespace Vizzu;
 
-TestChart::TestChart() : chart(GUI::ScreenInfo()) {}
+TestChart::TestChart() {}
 
 void TestChart::prepareData()
 {
@@ -36,8 +36,8 @@ void TestChart::run()
 	{
 		IO::log() << "step 3";
 		auto setter = chart.getChart().getSetter();
-		setter->deleteSeries(Scale::Y, "Cat2");
-		setter->addSeries(Scale::X, "Cat2");
+		setter->deleteSeries(ScaleId::y, "Cat2");
+		setter->addSeries(ScaleId::x, "Cat2");
 		setter->setTitle("VIZZU Chart - Phase 3");
 		chart.getChart().getStyles().title.textAlign =
 		    ::Anim::Interpolated<Styles::Text::TextAlign>(
@@ -50,14 +50,14 @@ void TestChart::run()
 		IO::log() << "step 2";
 		auto setter = chart.getChart().getSetter();
 		setter->setFilter(Data::Filter());
-		setter->addSeries(Scale::Y, "Cat2");
-		setter->addSeries(Scale::Color, "Cat2");
+		setter->addSeries(ScaleId::y, "Cat2");
+		setter->addSeries(ScaleId::color, "Cat2");
 		setter->setPolar(true);
 		setter->setTitle("VIZZU Chart - Phase 2");
 		chart.getChart().getStyles().title.fontSize = 10;
 
-		chart.getChart().getStyles().plot.marker.label.position =
-		    Styles::MarkerLabel::Position::above;
+//		chart.getChart().getStyles().plot.marker.label.position =
+//		    Styles::MarkerLabel::Position::above;
 		chart.getChart().getStyles().legend.marker.type =
 		    Styles::Legend::Marker::Type::square;
 		chart.getChart().getStyles().title.textAlign =
@@ -70,7 +70,7 @@ void TestChart::run()
 	{
 		try {
 			IO::log() << "step 1b";
-			auto descriptor = chart.getChart().getDescriptor();
+			auto config = chart.getChart().getConfig();
 			auto setter = chart.getChart().getSetter();
 			setter->setFilter(Data::Filter(
 			    [&](const auto &row)
@@ -79,8 +79,8 @@ void TestChart::run()
 				        || (std::string)row["Cat2"] == "b";
 			    }));
 			setter->setTitle("VIZZU Chart - Phase 1b");
-			chart.getChart().getStyles().plot.marker.label.position =
-			    Styles::MarkerLabel::Position::below;
+//			chart.getChart().getStyles().plot.marker.label.position =
+//			    Styles::MarkerLabel::Position::below;
 			chart.getChart().getStyles().legend.marker.type =
 			    Styles::Legend::Marker::Type::circle;
 			chart.getChart().getStyles().title.textAlign =
@@ -98,14 +98,13 @@ void TestChart::run()
 	{
 		IO::log() << "step 1";
 		auto setter = chart.getChart().getSetter();
-		setter->addSeries(Scale::X, "Cat1");
-		setter->addSeries(Scale::X, "$exists");
-		setter->addSeries(Scale::Y, "Val");
-		setter->addSeries(Scale::Label, "Val");
-		setter->addSeries(Scale::X, "Val");
-		setter->addSeries(Scale::Y, "Cat2");
-		setter->addSeries(Scale::Color, "Cat2");
-		setter->setLegend(Scale::Color);
+		setter->addSeries(ScaleId::x, "Cat1");
+		setter->addSeries(ScaleId::x, "$exists");
+		setter->addSeries(ScaleId::y, "Val");
+		setter->addSeries(ScaleId::label, "Val");
+		setter->addSeries(ScaleId::x, "Val");
+		setter->addSeries(ScaleId::y, "Cat2");
+		setter->addSeries(ScaleId::color, "Cat2");
 		chart.getChart().getStyles().plot.marker.label.filter =
 		    Gfx::ColorTransform::Lightness(0.5);
 		chart.getChart().getStyles().plot.marker.label.position =

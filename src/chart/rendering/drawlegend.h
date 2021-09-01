@@ -5,6 +5,7 @@
 #include "base/gfx/canvas.h"
 #include "chart/generator/diagram.h"
 #include "chart/main/style.h"
+#include "chart/main/events.h"
 
 namespace Vizzu
 {
@@ -16,15 +17,17 @@ class drawLegend
 public:
 	drawLegend(const Geom::Rect &rect,
 	    const Diag::Diagram &diagram,
+	    const Events::Draw::Legend &events,
 	    Gfx::ICanvas &canvas,
-	    Diag::Scale::Type scaleType,
+	    Diag::ScaleId scaleType,
 		double weight);
 
 private:
 	Geom::Rect contentRect;
 	const Diag::Diagram &diagram;
+	const Events::Draw::Legend &events;
 	Gfx::ICanvas &canvas;
-	Diag::Scale::Type type;
+	Diag::ScaleId type;
 	double weight;
 	double enabled;
 	const Styles::Legend &style;
@@ -39,7 +42,7 @@ private:
 	Geom::Rect getLabelRect(const Geom::Rect &itemRect) const;
 	Geom::Rect getBarRect() const;
 
-	void drawTitle(const std::string &title);
+	void drawTitle(const ::Anim::String &title);
 
 	void extremaLabel(double value, int pos);
 	void colorBar(const Geom::Rect &rect);

@@ -83,7 +83,7 @@ public:
 
 }
 
-#define Enum(EnumName)                                        \
+#define refEnumBeg(EnumName)                                  \
 	EnumName                                                  \
 	{                                                         \
 	public:                                                   \
@@ -94,6 +94,9 @@ public:
                                                               \
 		EnumName() {}                                         \
 		EnumName(EnumType value) : value(value) {}            \
+		explicit EnumName(uint32_t v) :                       \
+			value(EnumType(v))                                \
+		{}                                                    \
                                                               \
 		explicit EnumName(const std::string &name)            \
 		{                                                     \
@@ -101,26 +104,34 @@ public:
 		}                                                     \
                                                               \
 		operator EnumType() const { return value; }           \
+		explicit operator uint32_t() const { return value; }  \
                                                               \
 		explicit operator std::string() const                 \
 		{                                                     \
 			return std::string(EnumInfo::name(value));        \
 		}                                                     \
                                                               \
-		EnumType value;                                       \
-                                                              \
-		refEnumSpec
+		EnumType value;
 
-#define refEnumSpec(...)                                           \
-		enum EnumType : uint32_t                                   \
-		{                                                          \
-			__VA_ARGS__                                            \
-		};                                                         \
-	                                                               \
+#define refEnumMid(...)                                       \
+		enum EnumType : uint32_t                              \
+		{                                                     \
+			__VA_ARGS__                                       \
+		};
+
+#define refEnumEnd(...)                                            \
 		struct EnumDefinition                                      \
 		{                                                          \
 			static constexpr std::string_view code = #__VA_ARGS__; \
 		};                                                         \
 	}
+
+#define refEnumSecondPart(...) refEnumMid(__VA_ARGS__) refEnumEnd(__VA_ARGS__)
+
+#define Enum(EnumName) refEnumBeg(EnumName) refEnumSecondPart
+
+#define refEnumSecondPartNoNames(...) refEnumMid(__VA_ARGS__) refEnumEnd
+
+#define SpecNameEnum(EnumName) refEnumBeg(EnumName) refEnumSecondPartNoNames
 
 #endif

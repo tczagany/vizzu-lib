@@ -17,6 +17,8 @@ public:
 	static ColorTransform OverrideColor(const Gfx::Color &overrideColor);
 	static ColorTransform Grayscale(double factor);
 	static ColorTransform Lightness(double factor);
+	static ColorTransform Opacity(double factor);
+	static ColorTransform None();
 
 	Gfx::Color operator()(const Gfx::Color &color) const;
 
