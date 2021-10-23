@@ -1,4 +1,5 @@
 const Vizzu = require('./lib/vizzu.js');
+const fs = require('fs');
 
 let data = {
 	series: [
@@ -75,13 +76,13 @@ let anim = chart.initializing
 			geometry: 'circle',
 			title: null,
 			legend: null,
-		},
-		style: {
-			tooltip: {
-				layout: "multiLine",
-				shadowColor: 'rgba(0,0,0,0.1)'
-			}
 		}
 	}
-))
+)).then(chart => {
+	console.log("chart rendered");
+	const buffer = canvas.toBuffer('image/png');
+	fs.writeFileSync('./image.png', buffer);
+	console.log("png written");
+	process.exit(1);
+})
 .catch(console.log);

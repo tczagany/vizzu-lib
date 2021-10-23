@@ -9,19 +9,19 @@ file(GLOB_RECURSE headers ${appsDir}/weblib/*.h)
 if(EMSCRIPTEN)
 	add_executable (cvizzu ${sources})
 
-	#if(${NODEJS})
-	#	add_custom_command(TARGET cvizzu PRE_BUILD
-	#		COMMAND node
-	#		"${CMAKE_CURRENT_LIST_DIR}/envswitch.js"
-	#		"${CMAKE_CURRENT_SOURCE_DIR}/${appsDir}/weblib/js-api"
-	#		"NODE")
-	#else()
-	#	add_custom_command(TARGET cvizzu PRE_BUILD
-	#		COMMAND node
-	#		"${CMAKE_CURRENT_LIST_DIR}/envswitch.js"
-	#		"${CMAKE_CURRENT_SOURCE_DIR}/${appsDir}/weblib/js-api"
-	#		"ES6")
-	#endif()
+	if(${NODEJS})
+		add_custom_command(TARGET cvizzu PRE_BUILD
+			COMMAND node
+			"${CMAKE_CURRENT_LIST_DIR}/envswitch.js"
+			"${CMAKE_CURRENT_SOURCE_DIR}/${appsDir}/weblib/js-api"
+			"NODE")
+	else()
+		add_custom_command(TARGET cvizzu PRE_BUILD
+			COMMAND node
+			"${CMAKE_CURRENT_LIST_DIR}/envswitch.js"
+			"${CMAKE_CURRENT_SOURCE_DIR}/${appsDir}/weblib/js-api"
+			"ES6")
+	endif()
 
 	target_link_libraries (cvizzu LINK_PUBLIC vizzulib)
 else()
@@ -43,7 +43,7 @@ if(EMSCRIPTEN)
 
 	add_custom_command(TARGET cvizzu POST_BUILD
 		COMMAND "${CMAKE_COMMAND}" -E copy
-		"${CMAKE_CURRENT_SOURCE_DIR}/${appsDir}/weblib/js-api/*"
+		"${CMAKE_CURRENT_SOURCE_DIR}/${appsDir}/weblib/js-api/tmp/*"
 		"${CMAKE_CURRENT_SOURCE_DIR}/${root}/example/lib")
 
 	add_custom_command(TARGET cvizzu POST_BUILD
@@ -53,7 +53,7 @@ if(EMSCRIPTEN)
 
 	add_custom_command(TARGET cvizzu POST_BUILD
 		COMMAND "${CMAKE_COMMAND}" -E copy
-		"${CMAKE_CURRENT_SOURCE_DIR}/${appsDir}/weblib/js-api/*"
+		"${CMAKE_CURRENT_SOURCE_DIR}/${appsDir}/weblib/js-api/tmp/*"
 		"${CMAKE_CURRENT_SOURCE_DIR}/${root}/example-node/lib")
 
 endif()
