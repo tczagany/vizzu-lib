@@ -46,14 +46,4 @@ if(EMSCRIPTEN)
 		"${CMAKE_CURRENT_SOURCE_DIR}/${appsDir}/weblib/js-api/tmp/*"
 		"${CMAKE_CURRENT_SOURCE_DIR}/${root}/example/lib")
 
-	add_custom_command(TARGET cvizzu POST_BUILD
-		COMMAND "${CMAKE_COMMAND}" -E copy
-		"cvizzu.*"
-		"${CMAKE_CURRENT_SOURCE_DIR}/${root}/example-node/lib")
-
-	add_custom_command(TARGET cvizzu POST_BUILD
-		COMMAND "${CMAKE_COMMAND}" -E copy
-		"${CMAKE_CURRENT_SOURCE_DIR}/${appsDir}/weblib/js-api/tmp/*"
-		"${CMAKE_CURRENT_SOURCE_DIR}/${root}/example-node/lib")
-
 endif()
