@@ -1,4 +1,10 @@
-import UnPivot from './unpivot.js';
+"use strict";
+
+//$$CMAKE-ENVIRONMENT-SWITCH NODE
+const UnPivot = require('./unpivot.js');
+//$$CMAKE-ENVIRONMENT-SWITCH ES6
+//import UnPivot from './unpivot.js';
+//$$CMAKE-ENVIRONMENT-SWITCH
 
 class DataRecord
 {
@@ -39,7 +45,11 @@ class DataRecord
 	}
 };
 
-export default class Data
+//$$CMAKE-ENVIRONMENT-SWITCH NODE
+module.exports = class Data
+//$$CMAKE-ENVIRONMENT-SWITCH ES6
+//export default class Data
+//$$CMAKE-ENVIRONMENT-SWITCH
 {
 	constructor(chart)
 	{

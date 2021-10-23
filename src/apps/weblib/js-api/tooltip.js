@@ -1,4 +1,10 @@
-export default class Tooltip
+"use strict";
+
+//$$CMAKE-ENVIRONMENT-SWITCH NODE
+module.exports = class Tooltip
+//$$CMAKE-ENVIRONMENT-SWITCH ES6
+//export default class Tooltip
+//$$CMAKE-ENVIRONMENT-SWITCH
 {
 	constructor(chart) {
 		this.set = false;

@@ -1,6 +1,10 @@
 "use strict";
 
-export default class Events
+//$$CMAKE-ENVIRONMENT-SWITCH NODE
+module.exports = class Events
+//$$CMAKE-ENVIRONMENT-SWITCH ES6
+//export default class Events
+//$$CMAKE-ENVIRONMENT-SWITCH
 {
 	constructor(vizzu) {
 		this.vizzu = vizzu;

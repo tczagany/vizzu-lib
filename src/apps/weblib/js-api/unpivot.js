@@ -1,6 +1,5 @@
 "use strict";
 
-
 const assert = (condition, message) => {
     if (!condition) {
         throw new Error('Assert failed: ' + message);
@@ -24,9 +23,12 @@ const assertArray = (data, array, index) => {
     });
 };
 
-
-export default class UnPivot {
-
+//$$CMAKE-ENVIRONMENT-SWITCH NODE
+module.exports = class UnPivot
+//$$CMAKE-ENVIRONMENT-SWITCH ES6
+//export default class UnPivot
+//$$CMAKE-ENVIRONMENT-SWITCH
+{
     static isPivot(data) {
         return data.dimensions !== undefined
             || data.measures !== undefined;

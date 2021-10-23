@@ -1,0 +1,7 @@
+{
+    "name": "node-example.js",
+    "type": "commonjs",
+    "dependencies": {
+        "canvas": "^2.8.0"
+    }
+}

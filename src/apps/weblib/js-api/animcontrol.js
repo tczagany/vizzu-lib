@@ -1,4 +1,10 @@
-export default class AnimControl
+"use strict";
+
+//$$CMAKE-ENVIRONMENT-SWITCH NODE
+module.exports = class AnimControl
+//$$CMAKE-ENVIRONMENT-SWITCH ES6
+//export default class AnimControl
+//$$CMAKE-ENVIRONMENT-SWITCH
 {
 	constructor(chart) {
 		this.chart = chart;
@@ -38,3 +44,4 @@ export default class AnimControl
 		}
 	}
 }
+

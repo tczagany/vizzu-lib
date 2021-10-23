@@ -1,13 +1,27 @@
 "use strict";
 
-import Render from './render.js';
-import Events from './events.js';
-import Data from './data.js';
-import AnimControl from './animcontrol.js';
-import Tooltip from './tooltip.js';
-import VizzuModule from './cvizzu.js';
+//$$CMAKE-ENVIRONMENT-SWITCH NODE
+const Canvas = require('canvas');
+const Render = require('./render.js');
+const Events = require('./events.js');
+const Data = require('./data.js');
+const AnimControl = require('./animcontrol.js');
+const Tooltip = require('./tooltip.js');
+const VizzuModule = require('./cvizzu.js');
+//$$CMAKE-ENVIRONMENT-SWITCH ES6
+//import Render from './render.js';
+//import Events from './events.js';
+//import Data from './data.js';
+//import AnimControl from './animcontrol.js';
+//import Tooltip from './tooltip.js';
+//import VizzuModule from './cvizzu.js';
+//$$CMAKE-ENVIRONMENT-SWITCH
 
-export default class Vizzu
+//$$CMAKE-ENVIRONMENT-SWITCH NODE
+module.exports = class Vizzu
+//$$CMAKE-ENVIRONMENT-SWITCH ES6
+//export default class Vizzu
+//$$CMAKE-ENVIRONMENT-SWITCH
 {
 	constructor(container, initState)
 	{
@@ -343,7 +357,9 @@ export default class Vizzu
 		this.call(this.module._vizzu_init)();
 		this.call(this.module._vizzu_setLogging)(false);
 
-		this.setupDOMEventHandlers(canvas);
+		if ((typeof process === 'undefined') || (process.release.name !== 'node')) {
+			this.setupDOMEventHandlers(canvas);
+		}
 
 		this.start();
 
@@ -355,28 +371,33 @@ export default class Vizzu
 		let canvas = null;
 		let placeholder = this.container;
 
-		if (!(placeholder instanceof HTMLElement)) {
-			placeholder = document.getElementById(placeholder);
-		}
-
-		if (!placeholder) {
-			throw new Error
-				(`Cannot find container ${this.container} to render Vizzu!`);
-		}
-
-		if (placeholder instanceof HTMLCanvasElement) {
+		if ((typeof process !== 'undefined') && (process.release.name === 'node')) {
 			canvas = placeholder;
-		} else {
-			canvas = document.createElement('CANVAS');
-			canvas.style.width = "100%";
-			canvas.style.height = "100%";
-			placeholder.appendChild(canvas);
 		}
+		else {
+			if (!(placeholder instanceof HTMLElement)) {
+				placeholder = document.getElementById(placeholder);
+			}
 
-		if (!(canvas instanceof HTMLCanvasElement)) {
-			throw new Error("Error initializing <canvas> for Vizzu!");
+			if (!placeholder) {
+				throw new Error
+					(`Cannot find container ${this.container} to render Vizzu!`);
+			}
+
+			if (placeholder instanceof HTMLCanvasElement) {
+				canvas = placeholder;
+			} else {
+				canvas = document.createElement('CANVAS');
+				canvas.style.width = "100%";
+				canvas.style.height = "100%";
+				placeholder.appendChild(canvas);
+			}
+
+			if (!(canvas instanceof HTMLCanvasElement)) {
+				throw new Error("Error initializing <canvas> for Vizzu!");
+			}
 		}
-
+	
 		return canvas;
 	}
 

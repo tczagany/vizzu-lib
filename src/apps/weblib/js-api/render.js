@@ -1,11 +1,23 @@
 "use strict";
 
-export default class Render
+//$$CMAKE-ENVIRONMENT-SWITCH NODE
+const { createCanvas } = require('canvas')
+//$$CMAKE-ENVIRONMENT-SWITCH
+
+//$$CMAKE-ENVIRONMENT-SWITCH NODE
+module.exports = class Render
+//$$CMAKE-ENVIRONMENT-SWITCH ES6
+//export default class Render
+//$$CMAKE-ENVIRONMENT-SWITCH
 {
 	init(update, canvas, log) {
 		this.polygonFirstPoint = false;
-		// todo: implement alternate solution for nodejs
-		this.offscreenCanvas = document.createElement('CANVAS');
+		if ((typeof process !== 'undefined') && (process.release.name === 'node')) {
+			this.offscreenCanvas = createCanvas();
+		}
+		else {			
+			this.offscreenCanvas = document.createElement('CANVAS');
+		}
 		this.offscreenContext = this.offscreenCanvas.getContext("2d");
 		this.update = update;
 		this.mainCanvas = canvas;
@@ -64,9 +76,16 @@ export default class Render
 	}
 
 	updateCanvasSize() {
-		this.scaleFactor = window.devicePixelRatio;
-		this.cssWidth = +getComputedStyle(this.mainCanvas).width.slice(0, -2);
-		this.cssHeight = +getComputedStyle(this.mainCanvas).height.slice(0, -2);
+		if ((typeof process !== 'undefined') && (process.release.name === 'node')) {
+			this.scaleFactor = 1.0;
+			this.cssWidth = this.mainCanvas.width;
+			this.cssHeight = this.mainCanvas.height;
+		}
+		else {
+			this.scaleFactor = window.devicePixelRatio;
+			this.cssWidth = +getComputedStyle(this.mainCanvas).width.slice(0, -2);
+			this.cssHeight = +getComputedStyle(this.mainCanvas).height.slice(0, -2);
+		}
 		let hash = `${this.scaleFactor}:${this.cssWidth}:${this.cssHeight}`;
 		if (hash != this.prevUpdateHash) {
 			this.mainCanvas.width = this.cssWidth * this.scaleFactor;
@@ -80,13 +99,9 @@ export default class Render
 	}
 
 	updateFrame(force) {
-		var start = performance.now();
 		this.updateCanvasSize();
 		if (this.mainCanvas.width > 0 && this.mainCanvas.height > 0) {
 			this.update(this.scaleFactor, this.cssWidth, this.cssHeight, force);
 		}
-		var time = performance.now() - start;
-		if (this.log && time > 1)
-			console.log("Render.updateFrame: " + time.toFixed(2) + "ms");
 	}
 }

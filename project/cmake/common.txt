@@ -46,3 +46,4 @@ endif()
 
 endif()
 
+option(NODEJS "nodejs build" OFF)
